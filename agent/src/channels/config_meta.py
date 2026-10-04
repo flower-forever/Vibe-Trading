@@ -183,6 +183,7 @@ def _email_hints() -> list[FieldHint]:
         ("allow_from", "list", False, False),
         ("verify_dkim", "bool", False, False),
         ("verify_spf", "bool", False, False),
+        ("trusted_authserv_id", "text", False, False),
         ("allowed_attachment_types", "list", False, False),
         ("max_attachment_size", "text", False, False),
         ("max_attachments_per_email", "text", False, False),

@@ -148,6 +148,23 @@
     "advancedHint": "Ekspresi cron 5 kolom yang dievaluasi dalam zona waktu yang dipilih (menit jam hari bulan hari-dalam-minggu; daftar dan rentang diperbolehkan), atau interval langsung dalam milidetik.",
     "timezoneLabel": "Zona waktu",
     "create": "Jadwalkan run",
+    "saveChanges": "Simpan perubahan",
+    "cancelEdit": "Batalkan pengeditan",
+    "editingHint": "Anda sedang mengedit proses terjadwal ini. Penyimpanan mempertahankan identitas dan riwayat eksekusinya.",
+    "edit": "Edit",
+    "editAria": "Edit proses terjadwal: {{prompt}}",
+    "editRunningDisabled": "Tunggu proses atau pengirimannya selesai sebelum mengedit.",
+    "deliveryInApp": "Simpan hanya di Vibe (jangan kirim)",
+    "deliveryNoChannels": "Tidak ada saluran pengiriman aktif yang dikonfigurasi. Konfigurasikan satu di Pengaturan → Saluran.",
+    "deliveryChannelsLoadFailed": "Tidak dapat memuat saluran pengiriman yang dikonfigurasi.",
+    "deliveryChannelUnavailable": "{{channel}} (saat ini tidak tersedia)",
+    "deliveryTargetKind_destination": "Tujuan",
+    "deliveryTargetKind_email_address": "Alamat email penerima",
+    "deliveryTargetKind_chat": "Chat",
+    "deliveryTargetKind_channel": "Saluran",
+    "deliveryTargetDisabled": "Pilih saluran pengiriman terlebih dahulu.",
+    "deliverySummary": "{{channel}} → {{target}}",
+    "deliveryUnknownTarget": "Tujuan yang dikonfigurasi",
     "promptRequired": "Masukkan prompt riset sebelum menjadwalkan.",
     "invalidTime": "Masukkan waktu yang valid dalam format HH:MM.",
     "executorHint": "Run hanya dieksekusi jika server dijalankan dengan VIBE_TRADING_ENABLE_SCHEDULER diaktifkan.",
@@ -190,6 +207,13 @@
     "deliveryChannelPlaceholder": "telegram, feishu, … (kosongkan agar hasil tetap di aplikasi)",
     "deliveryTargetLabel": "Target channel",
     "deliveryTargetPlaceholder": "ID chat / grup / pengguna",
+    "deliveryFormatLabel": "Email report format",
+    "deliveryFormatDefault": "Channel default (plain text)",
+    "deliveryFormatHtml": "HTML email",
+    "deliveryFormatPdf": "PDF attachment",
+    "deliveryFormatDefaultHint": "Keeps the existing plain-text delivery behavior.",
+    "deliveryFormatHtmlHint": "Shows the full report as sanitized HTML in the email body.",
+    "deliveryFormatPdfHint": "Attaches the full report as PDF and keeps only a short notice in the body.",
     "deliveryHint": "Nonaktif secara default. Ringkasan dikirim setelah run selesai, bukan saat dijadwalkan.",
     "deliveryTargetRequired": "Pilih target untuk channel tersebut, atau kosongkan channel.",
     "delivery_none": "Akan dikirim ke {{channel}} setelah run berikutnya",
@@ -202,7 +226,16 @@
     "verdictUnreadable": "Kesimpulan terbaru tidak dapat dibaca",
     "verdictNoCalls": "Tidak ada sinyal",
     "verdictDelta": "{{was}} → {{now}}",
-    "verdictRecorded": "per {{when}}"
+    "verdictRecorded": "per {{when}}",
+    "deliveryKnownTargetLabel": "Tujuan dikenal",
+    "deliveryKnownTargetPlaceholder": "Pilih tujuan yang dikenal…",
+    "deliverySuggestionKind_private_chat": "Chat pribadi saya",
+    "deliveryTargetPlaceholder_email_address": "name@example.com",
+    "deliveryTargetPlaceholder_chat": "ID obrolan, grup, atau pengguna",
+    "deliveryTargetPlaceholder_channel": "ID kanal",
+    "deliveryTargetPlaceholder_destination": "ID chat / grup / pengguna",
+    "deliveryTargetPlaceholder_slack_destination": "#kanal, @pengguna, atau ID percakapan",
+    "deliveryTargetKind_slack_destination": "Tujuan"
   },
   "reports": {
     "badge": "Laporan",
@@ -650,6 +683,10 @@
           "max_attachments_per_email": {
             "label": "Maks. lampiran per email",
             "help": "Berapa banyak lampiran yang diterima dari satu email (default 5)."
+          },
+          "trusted_authserv_id": {
+            "label": "Server autentikasi tepercaya",
+            "help": "authserv-id server penerima, misalnya mx.google.com. Penyedia email harus menghapus header Authentication-Results masuk palsu yang memakai ID ini. Wajib saat verifikasi SPF atau DKIM aktif; kosong menolak email masuk."
           }
         },
         "websocket": {
@@ -2086,4 +2123,3 @@
     }
   }
 }
-

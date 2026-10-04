@@ -7,6 +7,21 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Editable scheduled delivery and rich Email reports** (#1649, #1680).
+  Choose a configured channel and destination, edit existing schedules, and
+  select plain text, sanitized HTML or a PDF attachment for Email across Web,
+  CLI playbooks and agent proposals. Confirmation surfaces show the format. Format edits
+  persist, active sends cannot be overwritten, and desktop PDF delivery uses
+  the packaged renderer when native libraries are unavailable, with embedded
+  CJK/Arabic fonts and tested multiline/table pagination.
+- **Structured backtest summaries and paged artifact reads** (#1646, #1647,
+  resolves #1644 and #1645). Complete scalar metrics, structured metrics and
+  validation accompany endpoint-preserving equity previews and OHLCV paths.
+  `read_run_artifact` streams manifest-listed CSV pages within the actual
+  tool-result limit, with resumable offsets and bounded metadata. Grounding
+  accepts only shown rows of unchanged engine tables, preserving run identity
+  and excluding model-written files and escaped symlinks.
+
 - **Grounding validation records fired declared checks** (#1661, with the
   registry substrate from #1628, thanks @he-yufeng). Validation artifacts name
   the registered checks behind their findings; the existing private/listed
@@ -38,6 +53,27 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   records now come from the `src.agent.tool_results` logger.
 
 ### Fixed
+
+- **Channel settings and delivery** (#1681, #1508). Unchanged nullable form
+  values no longer block saving or testing. Email authentication requires a
+  configured receiving authserv-id and sender-domain alignment; comments and
+  duplicate headers cannot pass as authenticated results. The guided setup
+  exposes the trust setting in all nine interface languages.
+- **Research continuity and output access** (#1682, #1688, #1679, #1676,
+  #1639). Memory snippets retain real spacing and match markers, goal evidence
+  preserves exact tool-call provenance, export refusals explain allowed-root
+  configuration, macro results report both observation and delivery limits,
+  and skill-file deletion follows resolved auxiliary-directory boundaries.
+- **Risk and portfolio mathematics** (#1659, #1658, #1657, #1656, #1653).
+  Attribution rejects non-finite inputs, VaR transitions preserve missing
+  observations, implied volatility meets its price tolerance, monthly risk
+  requests obtain sufficient default history, and turnover prices signed
+  reversals plus cash liquidation and reentry.
+- **Local data, updates and broker restrictions** (#1651, #1655, #1581,
+  #1585). Local ranges include the entire end day, CLI updates retain the VCS
+  installation source, SDK position-pricing fixes retain contributor ancestry,
+  and unsupported Robinhood option orders remain gated even when remotely
+  annotated read-only. Options execution remains unimplemented (#1435).
 
 - **Strategy-file writes no longer crash on missing model provenance fields**
   (#1673, closes #1672, thanks @tomaszkubiak-courses). Each writing turn records

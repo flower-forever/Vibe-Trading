@@ -143,6 +143,23 @@
     "advancedHint": "在所选时区求值的 5 字段 cron 表达式（分 时 日 月 星期；支持列表和范围），或以毫秒为单位的间隔。",
     "timezoneLabel": "时区",
     "create": "创建定时任务",
+    "saveChanges": "保存更改",
+    "cancelEdit": "取消编辑",
+    "editingHint": "正在编辑此定时任务。保存后将保留其标识和执行历史。",
+    "edit": "编辑",
+    "editAria": "编辑定时任务：{{prompt}}",
+    "editRunningDisabled": "请等待本次执行或投递完成后再编辑。",
+    "deliveryInApp": "仅保留在 Vibe 中（不发送）",
+    "deliveryNoChannels": "尚未配置已启用的投递渠道。请在“设置 → 渠道”中配置一个。",
+    "deliveryChannelsLoadFailed": "无法加载已配置的投递渠道。",
+    "deliveryChannelUnavailable": "{{channel}}（当前不可用）",
+    "deliveryTargetKind_destination": "目标",
+    "deliveryTargetKind_email_address": "收件人邮箱地址",
+    "deliveryTargetKind_chat": "聊天",
+    "deliveryTargetKind_channel": "频道",
+    "deliveryTargetDisabled": "请先选择投递渠道。",
+    "deliverySummary": "{{channel}} → {{target}}",
+    "deliveryUnknownTarget": "已配置目标",
     "promptRequired": "请先填写研究提示词再创建定时任务。",
     "invalidTime": "请输入有效时间（格式 HH:MM）。",
     "executorHint": "仅当服务端启用 VIBE_TRADING_ENABLE_SCHEDULER 时才会执行。",
@@ -185,6 +202,13 @@
     "deliveryChannelPlaceholder": "telegram、feishu…（留空则结果只留在应用内）",
     "deliveryTargetLabel": "频道目标",
     "deliveryTargetPlaceholder": "会话 / 群 / 用户 id",
+    "deliveryFormatLabel": "Email report format",
+    "deliveryFormatDefault": "Channel default (plain text)",
+    "deliveryFormatHtml": "HTML email",
+    "deliveryFormatPdf": "PDF attachment",
+    "deliveryFormatDefaultHint": "Keeps the existing plain-text delivery behavior.",
+    "deliveryFormatHtmlHint": "Shows the full report as sanitized HTML in the email body.",
+    "deliveryFormatPdfHint": "Attaches the full report as PDF and keeps only a short notice in the body.",
     "deliveryHint": "默认关闭。简报在运行**结束后**推送，而不是在排定时推送。",
     "deliveryTargetRequired": "请为该频道填写目标，或清空频道。",
     "delivery_none": "下次运行结束后推送到 {{channel}}",
@@ -197,7 +221,16 @@
     "verdictUnreadable": "最新判定无法解析",
     "verdictNoCalls": "无调用",
     "verdictDelta": "{{was}} → {{now}}",
-    "verdictRecorded": "记于 {{when}}"
+    "verdictRecorded": "记于 {{when}}",
+    "deliveryKnownTargetLabel": "已知目标",
+    "deliveryKnownTargetPlaceholder": "选择已知目标…",
+    "deliverySuggestionKind_private_chat": "我的私聊",
+    "deliveryTargetPlaceholder_email_address": "name@example.com",
+    "deliveryTargetPlaceholder_chat": "聊天、群组或用户 ID",
+    "deliveryTargetPlaceholder_channel": "频道 ID",
+    "deliveryTargetPlaceholder_destination": "会话 / 群 / 用户 id",
+    "deliveryTargetPlaceholder_slack_destination": "#频道、@用户或会话 ID",
+    "deliveryTargetKind_slack_destination": "目标"
   },
   "reports": {
     "badge": "报告",
@@ -645,6 +678,10 @@
           "max_attachments_per_email": {
             "label": "单封邮件附件数上限",
             "help": "一封邮件最多接受的附件数量（默认 5）。"
+          },
+          "trusted_authserv_id": {
+            "label": "受信任的认证服务器",
+            "help": "收件服务器的 authserv-id，例如 mx.google.com。邮件服务商必须移除外部伪造且使用此 ID 的 Authentication-Results 邮件头。启用 SPF 或 DKIM 验证时必填；留空会拒收邮件。"
           }
         },
         "websocket": {
@@ -2086,4 +2123,3 @@
     }
   }
 }
-

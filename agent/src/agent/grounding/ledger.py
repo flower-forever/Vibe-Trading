@@ -280,6 +280,8 @@ class GroundingLedger(
             self._ingest_market_data(arguments, payload, call_id)
         elif tool_name == "read_file" and payload is not None:
             self._ingest_engine_table(payload, call_id)
+        elif tool_name == "read_run_artifact" and payload is not None:
+            self._ingest_engine_table(payload, call_id, tool_name=tool_name)
         elif payload is not None:
             self._ingest_generic_numeric(tool_name, arguments, payload, call_id)
         self.persist()

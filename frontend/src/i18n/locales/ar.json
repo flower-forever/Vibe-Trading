@@ -143,6 +143,23 @@
     "advancedHint": "تعبير cron من 5 حقول يُقيّم في المنطقة الزمنية المحددة (دقيقة ساعة يوم شهر يوم-أسبوع؛ تُدعم القوائم والنطاقات)، أو فاصل زمني بالمللي ثانية.",
     "timezoneLabel": "المنطقة الزمنية",
     "create": "إنشاء جدولة",
+    "saveChanges": "حفظ التغييرات",
+    "cancelEdit": "إلغاء التعديل",
+    "editingHint": "أنت تعدّل هذا التشغيل المجدول. يحافظ الحفظ على هويته وسجل التنفيذ.",
+    "edit": "تعديل",
+    "editAria": "تعديل التشغيل المجدول: {{prompt}}",
+    "editRunningDisabled": "انتظر انتهاء التشغيل أو التسليم قبل التعديل.",
+    "deliveryInApp": "الاحتفاظ في Vibe فقط (عدم الإرسال)",
+    "deliveryNoChannels": "لا توجد قنوات تسليم مفعّلة ومهيأة. هيّئ واحدة في الإعدادات > القنوات.",
+    "deliveryChannelsLoadFailed": "تعذّر تحميل قنوات التسليم المهيأة.",
+    "deliveryChannelUnavailable": "{{channel}} (غير متاح حاليًا)",
+    "deliveryTargetKind_destination": "الوجهة",
+    "deliveryTargetKind_email_address": "عنوان البريد الإلكتروني للمستلم",
+    "deliveryTargetKind_chat": "المحادثة",
+    "deliveryTargetKind_channel": "القناة",
+    "deliveryTargetDisabled": "اختر قناة تسليم أولًا.",
+    "deliverySummary": "{{channel}} → {{target}}",
+    "deliveryUnknownTarget": "وجهة مهيأة",
     "promptRequired": "أدخل موجّه البحث قبل إنشاء الجدولة.",
     "invalidTime": "أدخل وقتًا صالحًا بصيغة HH:MM.",
     "executorHint": "تُنفّذ المهام فقط عندما يعمل الخادم مع تفعيل VIBE_TRADING_ENABLE_SCHEDULER.",
@@ -185,6 +202,13 @@
     "deliveryChannelPlaceholder": "telegram أو feishu … (اتركه فارغًا لإبقاء النتائج داخل التطبيق)",
     "deliveryTargetLabel": "وجهة القناة",
     "deliveryTargetPlaceholder": "معرّف محادثة / مجموعة / مستخدم",
+    "deliveryFormatLabel": "Email report format",
+    "deliveryFormatDefault": "Channel default (plain text)",
+    "deliveryFormatHtml": "HTML email",
+    "deliveryFormatPdf": "PDF attachment",
+    "deliveryFormatDefaultHint": "Keeps the existing plain-text delivery behavior.",
+    "deliveryFormatHtmlHint": "Shows the full report as sanitized HTML in the email body.",
+    "deliveryFormatPdfHint": "Attaches the full report as PDF and keeps only a short notice in the body.",
     "deliveryHint": "مُعطّل افتراضيًا. يُرسل الملخص **بعد انتهاء** التشغيل، لا عند جدولته.",
     "deliveryTargetRequired": "حدّد وجهة لهذه القناة أو أفرغ حقل القناة.",
     "delivery_none": "سيُرسل إلى {{channel}} بعد التشغيل القادم",
@@ -197,7 +221,16 @@
     "verdictUnreadable": "تعذر قراءة أحدث تقييم",
     "verdictNoCalls": "لا إشارات",
     "verdictDelta": "{{was}} ← {{now}}",
-    "verdictRecorded": "اعتبارًا من {{when}}"
+    "verdictRecorded": "اعتبارًا من {{when}}",
+    "deliveryKnownTargetLabel": "وجهة معروفة",
+    "deliveryKnownTargetPlaceholder": "اختر وجهة معروفة…",
+    "deliverySuggestionKind_private_chat": "محادثتي الخاصة",
+    "deliveryTargetPlaceholder_email_address": "name@example.com",
+    "deliveryTargetPlaceholder_chat": "معرّف المحادثة أو المجموعة أو المستخدم",
+    "deliveryTargetPlaceholder_channel": "معرّف القناة",
+    "deliveryTargetPlaceholder_destination": "معرّف محادثة / مجموعة / مستخدم",
+    "deliveryTargetPlaceholder_slack_destination": "#قناة أو @مستخدم أو معرّف محادثة",
+    "deliveryTargetKind_slack_destination": "الوجهة"
   },
   "reports": {
     "badge": "التقارير",
@@ -645,6 +678,10 @@
           "max_attachments_per_email": {
             "label": "الحد الأقصى للمرفقات لكل رسالة",
             "help": "عدد المرفقات المقبولة من رسالة واحدة (الافتراضي 5)."
+          },
+          "trusted_authserv_id": {
+            "label": "خادم المصادقة الموثوق",
+            "help": "معرّف authserv-id لخادم الاستلام، مثل mx.google.com. يجب على مزود البريد إزالة ترويسات Authentication-Results الواردة المزوّرة التي تحمل هذا المعرّف. مطلوب عند تفعيل SPF أو DKIM؛ تركه فارغًا يرفض البريد الوارد."
           }
         },
         "websocket": {
@@ -2086,4 +2123,3 @@
     }
   }
 }
-

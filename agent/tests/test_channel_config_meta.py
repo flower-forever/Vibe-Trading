@@ -306,6 +306,7 @@ _EMAIL_HINT_KEYS = (
     "allow_from",
     "verify_dkim",
     "verify_spf",
+    "trusted_authserv_id",
     "allowed_attachment_types",
     "max_attachment_size",
     "max_attachments_per_email",
@@ -337,7 +338,7 @@ def test_email_field_hints_contract() -> None:
     keys = tuple(hint["key"] for hint in hints)
     assert keys == _EMAIL_HINT_KEYS
     assert "enabled" not in keys
-    assert len(hints) == 31
+    assert len(hints) == 32
 
     by_key = {hint["key"]: hint for hint in hints}
     assert {key for key, hint in by_key.items() if hint["secret"]} == {

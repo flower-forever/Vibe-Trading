@@ -258,6 +258,7 @@ export function ChannelConfigPanel({
       "settings.channels.fields.email.allow_from": { label: t("settings.channels.fields.email.allow_from.label"), help: t("settings.channels.fields.email.allow_from.help") },
       "settings.channels.fields.email.verify_dkim": { label: t("settings.channels.fields.email.verify_dkim.label"), help: t("settings.channels.fields.email.verify_dkim.help") },
       "settings.channels.fields.email.verify_spf": { label: t("settings.channels.fields.email.verify_spf.label"), help: t("settings.channels.fields.email.verify_spf.help") },
+      "settings.channels.fields.email.trusted_authserv_id": { label: t("settings.channels.fields.email.trusted_authserv_id.label"), help: t("settings.channels.fields.email.trusted_authserv_id.help") },
       "settings.channels.fields.email.allowed_attachment_types": { label: t("settings.channels.fields.email.allowed_attachment_types.label"), help: t("settings.channels.fields.email.allowed_attachment_types.help") },
       "settings.channels.fields.email.max_attachment_size": { label: t("settings.channels.fields.email.max_attachment_size.label"), help: t("settings.channels.fields.email.max_attachment_size.help") },
       "settings.channels.fields.email.max_attachments_per_email": { label: t("settings.channels.fields.email.max_attachments_per_email.label"), help: t("settings.channels.fields.email.max_attachments_per_email.help") },
