@@ -25,6 +25,15 @@ describe("generated report download", () => {
 });
 
 describe("api request helper", () => {
+  it("translates the server's message-size error into a recovery instruction", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      detail: { code: "message_too_long", max_length: 100_000, message: "Shorten input" },
+    }), { status: 422, headers: { "content-type": "application/json" } })));
+    const { api } = await loadApiModule();
+    await expect(api.sendMessage("session", "oversized")).rejects.toMatchObject({
+      status: 422, code: "message_too_long", message: expect.stringContaining("Shorten it"),
+    });
+  });
   beforeEach(() => {
     vi.stubGlobal("localStorage", {
       getItem: vi.fn(() => ""),

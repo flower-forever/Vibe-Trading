@@ -1007,6 +1007,7 @@
     "dropFiles": "여기에 파일 놓기",
     "removeAttachment": "{{filename}} 제거",
     "uploadFailed": "업로드 실패: {{error}}",
+    "messageTooLong": "첨부 정보와 팀 지침을 포함한 메시지가 {{limit}}자를 초과합니다. 줄인 후 보내세요.",
     "failedToSend": "메시지 전송에 실패했습니다. 다시 시도해 주세요.",
     "failedToContinue": "목표 진행에 실패했습니다. 다시 시도해 주세요.",
     "runtimeBadge": "거래 모니터",

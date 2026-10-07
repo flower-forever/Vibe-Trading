@@ -1012,6 +1012,7 @@
     "dropFiles": "Dateien hier ablegen",
     "removeAttachment": "{{filename}} entfernen",
     "uploadFailed": "Hochladen fehlgeschlagen: {{error}}",
+    "messageTooLong": "Die Nachricht überschreitet {{limit}} Zeichen einschließlich Anhangsinformationen und Teamanweisungen. Kürze sie vor dem Senden.",
     "failedToSend": "Nachricht konnte nicht gesendet werden, bitte erneut versuchen.",
     "failedToContinue": "Ziel konnte nicht fortgesetzt werden, bitte erneut versuchen.",
     "runtimeBadge": "LAUFZEIT",

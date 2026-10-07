@@ -1007,6 +1007,7 @@
     "dropFiles": "ここにファイルをドロップ",
     "removeAttachment": "{{filename}} を削除",
     "uploadFailed": "アップロードに失敗しました: {{error}}",
+    "messageTooLong": "添付情報とチーム指示を含むメッセージが {{limit}} 文字を超えています。短くしてから送信してください。",
     "failedToSend": "メッセージ送信に失敗しました。再試行してください。",
     "failedToContinue": "目標の続行に失敗しました。再試行してください。",
     "runtimeBadge": "取引モニター",

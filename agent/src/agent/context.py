@@ -205,7 +205,9 @@ Decide which workflow to use based on the request:
   as `ref`: `data.tail_risk.var_95` or just `var_95` from `portfolio_risk_xray`,
   `historical_var` from `quantlib_call`. When more than one call returned the
   same field, name the exact call as `call_id::field` (for example
-  `q1::historical_var`); a tool name is not a call id.
+  `<call_id>::historical_var`), where `<call_id>` is the tool_call_id of that
+  tool result copied verbatim; never invent a short alias. A tool name is not
+  a call id.
   Each element of a list is its own field: address it by index,
   `call_id::data.positions[0].contribution_pct` (`positions.0.contribution_pct`
   is read the same way). A field name without the index does not select an

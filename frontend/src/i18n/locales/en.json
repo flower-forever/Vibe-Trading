@@ -1012,6 +1012,7 @@
     "dropFiles": "Drop files here",
     "removeAttachment": "Remove {{filename}}",
     "uploadFailed": "Upload failed: {{error}}",
+    "messageTooLong": "Message exceeds {{limit}} characters including attachments and team instructions. Shorten it before sending.",
     "failedToSend": "Failed to send message, please retry.",
     "failedToContinue": "Failed to continue goal, please retry.",
     "runtimeBadge": "RUNTIME",

@@ -1007,6 +1007,7 @@
     "dropFiles": "拖放文件到这里",
     "removeAttachment": "移除 {{filename}}",
     "uploadFailed": "上传失败：{{error}}",
+    "messageTooLong": "消息（含附件信息和团队指令）超过 {{limit}} 个字符，请缩短后再发送。",
     "failedToSend": "发送消息失败，请重试。",
     "failedToContinue": "继续目标失败，请重试。",
     "runtimeBadge": "交易监控",

@@ -1012,6 +1012,7 @@
     "dropFiles": "Letakkan file di sini",
     "removeAttachment": "Hapus {{filename}}",
     "uploadFailed": "Gagal mengunggah: {{error}}",
+    "messageTooLong": "Pesan melebihi {{limit}} karakter, termasuk informasi lampiran dan instruksi tim. Persingkat sebelum mengirim.",
     "failedToSend": "Gagal mengirim pesan, silakan coba lagi.",
     "failedToContinue": "Gagal melanjutkan tujuan, silakan coba lagi.",
     "runtimeBadge": "RUNTIME",

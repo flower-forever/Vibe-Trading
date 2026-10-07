@@ -67,7 +67,9 @@ _PATH_RE = re.compile(r"/[^\s]+")
 _CREDENTIAL_RE = re.compile(
     r"[\"']?\b[\w-]*(?:token|secret|password|passwd|api[-_]?key|private[-_]?key)[\w-]*[\"']?"
     r"\s*[=:]\s*(?:\"(?:\\.|[^\"])*(?:\"|$)|'(?:\\.|[^'])*(?:'|$)|\S+)"
-    r"|\b(?:bearer|basic)\s+\S+"
+    # A scheme owns the rest of the warning: its value may be labelled
+    # (``Bearer token: VALUE``), and stopping at the label left the value behind.
+    r"|\b(?:bearer|basic)\s+\S+(?:\s+\S+)*"
     r"|\b(?:gh[pousr]_|github_pat_|sk-|xox[baprs]-)[\w-]{8,}",
     re.IGNORECASE,
 )

@@ -20,6 +20,17 @@ def _text(path):
         return "\n".join(document[index].get_textpage().get_text_range() for index in range(len(document)))
 
 
+def _decoded_streams(path):
+    """Read the ASCII85/Flate streams this ReportLab renderer writes."""
+    streams = []
+    for stream in re.findall(rb"stream\r?\n(.*?)endstream", path.read_bytes(), re.S):
+        try:
+            streams.append(zlib.decompress(base64.a85decode(stream.strip(), adobe=True)))
+        except (ValueError, zlib.error):
+            continue
+    return b"\n".join(streams)
+
+
 def test_arabic_shapes_and_preserves_latin_numbers_and_diacritics():
     logical = "تقرير مُهِمّ: AAPL 123.45 USD و BTC-USDT 67,890.12"
     visual = pdf_report._visual_line(logical, "R")
@@ -77,14 +88,9 @@ def test_real_mixed_arabic_markdown_table_pdf(tmp_path):
     assert "\x00" not in text and "\ufffd" not in text
     # PDFium applies its own bidi heuristic across an entire table row; it
     # may reorder 600519.SH into SH600519. ActualText is checked independently.
-    decoded = []
-    for stream in re.findall(rb"stream\r?\n(.*?)endstream", data, re.S):
-        try:
-            decoded.append(zlib.decompress(base64.a85decode(stream.strip(), adobe=True)))
-        except (ValueError, zlib.error):
-            continue
+    decoded = _decoded_streams(target)
     canonical = ("\ufeff" + "تحليل AAPL 123.45 USD و ١٢٣").encode("utf-16-be").hex().encode()
-    assert b"/ActualText <" + canonical + b">" in b"\n".join(decoded)
+    assert b"/ActualText <" + canonical + b">" in decoded
     normalized = unicodedata.normalize("NFKC", text)
     assert any(unicodedata.bidirectional(char) == "AL" for char in normalized)
     assert not list(tmp_path.glob(".report-*.pdf"))
@@ -99,8 +105,22 @@ def test_arabic_paragraph_and_tall_table_cell_paginate(tmp_path):
     )
     with pdfium.PdfDocument(target) as document:
         assert len(document) >= 3
-    extracted = _text(target)
-    assert extracted.count("123.45") == 321
+    # PDFium 156 reverses LTR runs when extracting a long Arabic paragraph
+    # (AAPL 123.45 becomes LPAA 54.321). Check the PDF's logical and drawn
+    # content independently of that extractor's paragraph bidi heuristic.
+    decoded = _decoded_streams(target)
+    logical = [
+        bytes.fromhex(value.decode()).decode("utf-16-be").lstrip("\ufeff")
+        for value in re.findall(rb"/ActualText <([0-9a-f]+)>", decoded)
+    ]
+    body = " ".join(part for part in logical if part not in {"تقرير طويل", "الوصف", "القيمة"})
+    expected = " ".join(text.split())
+    assert body == expected + " " + expected
+    # ActualText alone could conceal a missing drawing. Both the paragraph
+    # and tall cell must paint every Latin run, plus the standalone value.
+    drawn = b"\n".join(re.findall(rb"\((.*?)\)\s*Tj", decoded, re.S))
+    assert drawn.count(b"AAPL") == 320
+    assert drawn.count(b"123.45") == 321
 
 
 @pytest.mark.parametrize("failure", ["missing_glyph", "replace"])

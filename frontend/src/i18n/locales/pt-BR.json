@@ -1012,6 +1012,7 @@
     "dropFiles": "Solte os arquivos aqui",
     "removeAttachment": "Remover {{filename}}",
     "uploadFailed": "Falha no upload: {{error}}",
+    "messageTooLong": "A mensagem excede {{limit}} caracteres, incluindo informações dos anexos e instruções da equipe. Reduza-a antes de enviar.",
     "failedToSend": "Falha ao enviar mensagem, tente novamente.",
     "failedToContinue": "Falha ao continuar a meta. Tente novamente.",
     "runtimeBadge": "RUNTIME",

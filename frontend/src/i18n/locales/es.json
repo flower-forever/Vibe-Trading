@@ -1012,6 +1012,7 @@
     "dropFiles": "Suelta los archivos aquí",
     "removeAttachment": "Eliminar {{filename}}",
     "uploadFailed": "Error al subir: {{error}}",
+    "messageTooLong": "El mensaje supera {{limit}} caracteres, incluidos los datos de los adjuntos y las instrucciones del equipo. Acórtalo antes de enviarlo.",
     "failedToSend": "Error al enviar el mensaje, intenta de nuevo.",
     "failedToContinue": "Error al continuar el objetivo, intenta de nuevo.",
     "runtimeBadge": "RUNTIME",
