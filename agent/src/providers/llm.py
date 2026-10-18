@@ -1403,6 +1403,8 @@ def _sync_provider_env() -> None:
     _ensure_dotenv()
     reset_env_config()
     provider = get_env_config().llm.langchain_provider.lower()
+    if provider == "custom":
+        return  # Vault credentials are passed directly, never exported into ambient env.
 
     if provider in {"openai-codex", "openai_codex"}:
         codex_url = get_env_config().llm.openai_codex_base_url
@@ -1412,7 +1414,7 @@ def _sync_provider_env() -> None:
         os.environ.pop("OPENAI_API_KEY", None)
         return
 
-    if provider in {"copilot", "github-copilot"}:
+    if provider in {"copilot", "github-copilot", "claude-cli"}:
         os.environ.pop("OPENAI_API_BASE", None)
         os.environ.pop("OPENAI_BASE_URL", None)
         os.environ.pop("OPENAI_API_KEY", None)
@@ -1668,6 +1670,16 @@ def build_llm(*, model_name: Optional[str] = None, callbacks: Any = None) -> Any
             timeout=get_env_config().llm.timeout_seconds,
         )
 
+    if provider == "claude-cli":
+        from src.providers.claude_cli import ClaudeCliLLM
+
+        llm_cfg = get_env_config().llm
+        return ClaudeCliLLM(
+            model=name,
+            timeout=llm_cfg.timeout_seconds,
+            reasoning_effort=llm_cfg.langchain_reasoning_effort.strip().lower(),
+        )
+
     if provider == "anthropic":
         return _build_anthropic(
             model=name,
@@ -1711,6 +1723,8 @@ def build_llm(*, model_name: Optional[str] = None, callbacks: Any = None) -> Any
     configured_responses_api = get_env_config().llm.langchain_use_responses_api
     use_responses_api = uses_responses_api(provider, configured_responses_api)
     creds = get_llm_credentials(provider, name)
+    if provider == "custom":
+        name = model_name or creds["model"]
     api_key = creds["api_key"]
     _validate_authorization_credential(
         api_key,
@@ -1751,6 +1765,9 @@ def build_llm(*, model_name: Optional[str] = None, callbacks: Any = None) -> Any
         "vibe_provider": provider,
         "vibe_api_key": api_key,
     }
+    langchain_max_tokens = get_env_config().llm.langchain_max_tokens
+    if langchain_max_tokens:
+        kwargs["max_tokens"] = langchain_max_tokens
     if caps.default_headers:
         headers = dict(caps.default_headers)
         if caps.name in {"moonshot", "kimi-coding"}:

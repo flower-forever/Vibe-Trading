@@ -110,6 +110,7 @@ include = ["src*", "backtest*", "cli*", "evals*"]
     "skills/**/*.json",
     "skills/**/*.py",
     "providers/*.json",
+    "pixel_agents/*.json",
     "scheduled_research/playbooks/*.md",
     "swarm/presets/*.yaml",
     "shadow_account/templates/*.j2",
@@ -120,7 +121,7 @@ include = ["src*", "backtest*", "cli*", "evals*"]
     "shadow_account/assets/*.md",
 ]
 "evals.harness" = ["README.md", "cases/**/*.json"]
-"backtest" = ["*.py"]
+"backtest" = ["*.py", "loaders/*.json"]
 "src.factors" = ["zoo/**/*.yaml", "zoo/**/*.md", "zoo/**/NOTICE"]
 
 [project.optional-dependencies]

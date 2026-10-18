@@ -110,23 +110,38 @@ _MARKET_PATTERNS = [
     # Argentina: BYMA listings use Yahoo's canonical .BA suffix. Keep this
     # as a distinct market so ARS can never be mixed with USD/CNY accounting.
     (re.compile(r"^[A-Z0-9&.\-]+\.BA$", re.I), "ar_equity"),
+    # Brazil: B3 listings (PETR4.SA, BOVA11.SA, HGLG11.SA, AAPL34.SA) use
+    # Yahoo's canonical .SA suffix; every line settles in BRL.
+    (re.compile(r"^[A-Z0-9]+\.SA$", re.I), "br_equity"),
     # UK equities: London Stock Exchange (VOD.L, SHEL.L). Yahoo carries the
     # suffix verbatim.
     (re.compile(r"^[A-Z0-9&.\-]+\.L$", re.I), "uk_equity"),
     # Vietnam equities: HOSE (VIC.VN). Tickers are three letters in practice;
     # the class stays broad to admit fund certificates and ETF codes.
     (re.compile(r"^[A-Z0-9]+\.VN$", re.I), "vietnam_equity"),
-    (re.compile(r"^[A-Z]+-USDT$", re.I), "crypto"),
-    (re.compile(r"^[A-Z]+/USDT$", re.I), "crypto"),
+    (re.compile(r"^(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-USDT$", re.I), "crypto"),
+    (re.compile(r"^(?=[A-Z0-9]*[A-Z])[A-Z0-9]+/USDT$", re.I), "crypto"),
+    # USD-M perpetuals in their documented BASE-USDT-PERP spelling
+    # (ccxt_loader._parse_ccxt_symbol / binance_loader). Without this entry
+    # the symbol matched nothing above and fell through to the a_share
+    # default, so a leveraged perpetual ran under China A-share rules
+    # (100-share board-lot rounding) and every computed size rounded to a
+    # zero_size rejection (#1863). Base alphabet matches the loader's own
+    # ``([A-Z0-9]+)-USDT-PERP`` fullmatch.
+    (re.compile(r"^[A-Z0-9]+-USDT-PERP$", re.I), "crypto"),
     # yfinance's native crypto spelling (BTC-USD, ETH-USD). Distinct from
     # USDT pairs only in the quote currency; both belong to CryptoEngine.
-    (re.compile(r"^[A-Z]+-USD$", re.I), "crypto"),
+    (re.compile(r"^(?=[A-Z0-9]*[A-Z])[A-Z0-9]+-USD$", re.I), "crypto"),
     # Concatenated spot pairs (BTCUSDT, ETHUSDC) with no separator. Same
     # quote-asset table the trade-journal parser uses; without it these fell
     # through every pattern and got a_share rules (T+1, no shorting) on a
     # perpetual. Bare metals/FX (XAUUSD) end in USD, not USDT/USDC/BUSD, so
     # they still reach the forex whitelist below.
-    (re.compile(r"^[A-Z]{2,}(?:USDT|USDC|BUSD)$", re.I), "crypto"),
+    (re.compile(r"^(?!\d+(?:USDT|USDC|BUSD)$)[A-Z0-9]{2,}(?:USDT|USDC|BUSD)$", re.I), "crypto"),
+    # Separated USDC/BUSD-quoted pairs (BTC-USDC, ETH/USDC). Only the USDT
+    # spellings above were separator-aware, so these fell through to the
+    # a_share default even though the unseparated BTCUSDC is crypto.
+    (re.compile(r"^(?=[A-Z0-9]*[A-Z])[A-Z0-9]+[-/](?:USDC|BUSD)$", re.I), "crypto"),
     # China futures: product+delivery.exchange (e.g. IF2406.CFFEX, rb2410.SHFE)
     # Tushare suffix spellings (SHF/CZC/CFX/GFE) classify here too.
     (
@@ -227,6 +242,7 @@ _MARKET_CURRENCY = {
     "kr_equity": "KRW",
     "ca_equity": "CAD",
     "ar_equity": "ARS",
+    "br_equity": "BRL",
     "uk_equity": "GBP",
     "vietnam_equity": "VND",
     # Every crypto pattern in _MARKET_PATTERNS is USDT-quoted, and USDT is
@@ -347,7 +363,7 @@ def _detect_market(code: str) -> str:
 
     Returns:
         Market type (a_share/us_equity/hk_equity/india_equity/kr_equity/
-        ca_equity/ar_equity/crypto/futures/forex).
+        ca_equity/ar_equity/br_equity/crypto/futures/forex).
         Bare 1-5 letter alphabetic tickers resolve to ``us_equity``;
         bare 6-letter codes that start with a precious-metal or G10
         currency code (whitelist) resolve to ``forex``; concatenated

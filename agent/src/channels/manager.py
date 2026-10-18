@@ -75,12 +75,10 @@ class ChannelManager:
         bus: MessageBus,
         *,
         session_service: Any | None = None,
-        cron_service: Any | None = None,
     ) -> None:
         self.config = config
         self.bus = bus
         self._session_service = session_service
-        self._cron_service = cron_service
         self.channels: dict[str, BaseChannel] = {}
         self._dispatch_task: asyncio.Task | None = None
         self._start_tasks: set[asyncio.Task] = set()
@@ -187,7 +185,6 @@ class ChannelManager:
             return {
                 "gateway": build_gateway_services(
                     session_manager=self._session_service,
-                    cron_service=self._cron_service,
                     workspace_path=get_workspace_path(),
                 )
             }
@@ -223,7 +220,7 @@ class ChannelManager:
                     name,
                 )
 
-    def _should_send_progress(self, channel_name: str, *, tool_hint: bool = False) -> bool:
+    def should_send_progress(self, channel_name: str, *, tool_hint: bool = False) -> bool:
         """Return whether progress (or tool-hints) may be sent to *channel_name*."""
         ch = self.channels.get(channel_name)
         if ch is None:
@@ -485,15 +482,10 @@ class ChannelManager:
                     continue
 
                 # Progress / tool-hint filtering
-                if msg.metadata.get("_progress"):
-                    if msg.metadata.get("_tool_hint") and not self._should_send_progress(
-                        msg.channel, tool_hint=True,
-                    ):
-                        continue
-                    if not msg.metadata.get("_tool_hint") and not self._should_send_progress(
-                        msg.channel, tool_hint=False,
-                    ):
-                        continue
+                if msg.metadata.get("_progress") and not self.should_send_progress(
+                    msg.channel, tool_hint=bool(msg.metadata.get("_tool_hint")),
+                ):
+                    continue
 
                 if msg.metadata.get("_retry_wait"):
                     continue

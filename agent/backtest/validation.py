@@ -20,7 +20,7 @@ from typing import Any, Dict, List
 import numpy as np
 import pandas as pd
 
-from backtest.metrics import effective_bars_per_year
+from backtest.metrics import effective_bars_per_year, period_returns
 from backtest.models import TradeRecord
 
 
@@ -147,6 +147,7 @@ def bootstrap_sharpe_ci(
     confidence: float = 0.95,
     bars_per_year: int = 252,
     seed: int = 42,
+    initial_capital: float | None = None,
 ) -> Dict[str, Any]:
     """Resample daily returns to estimate Sharpe confidence interval.
 
@@ -156,6 +157,11 @@ def bootstrap_sharpe_ci(
         confidence: Confidence level (e.g. 0.95 for 95% CI).
         bars_per_year: Annualisation factor.
         seed: Random seed.
+        initial_capital: Starting capital. When given, the first return is
+            measured from this cash mark (the calc_metrics convention), so
+            ``observed_sharpe`` agrees with the report's own Sharpe on paths
+            whose first recorded bar carries real PnL. None keeps the legacy
+            adjacent-pair series.
 
     Returns:
         Dict with observed_sharpe, ci_lower, ci_upper, median_sharpe,
@@ -173,9 +179,13 @@ def bootstrap_sharpe_ci(
     if isinstance(seed, bool) or not isinstance(seed, Integral) or seed < 0:
         return {"error": f"seed must be >= 0, got {seed}"}
 
+    if initial_capital is not None:
+        series = period_returns(equity_curve, initial_capital)
+    else:
+        series = equity_curve.pct_change(fill_method=None)
     # Missing equity is not a flat observation or a one-period recovery return.
     returns = (
-        equity_curve.pct_change(fill_method=None)
+        series
         .replace([np.inf, -np.inf], 0.0)
         .dropna()
         .values
@@ -364,6 +374,7 @@ def run_validation(
             n_bootstrap=bs_cfg.get("n_bootstrap", 1000),
             confidence=bs_cfg.get("confidence", 0.95),
             seed=bs_cfg.get("seed", 42),
+            initial_capital=initial_capital,
         )
 
     if "walk_forward" in v_cfg:
@@ -400,10 +411,31 @@ def _load_trades(run_dir: Path) -> List[TradeRecord]:
     if df.empty:
         return []
 
-    # trades.csv has entry+exit row pairs; extract exit rows (they have pnl != 0)
+    # New artifacts identify exits explicitly, including break-even trades.
+    # Unmarked historical/other-engine files retain their legacy convention.
     trades = []
-    exit_rows = df[df["pnl"] != 0].reset_index(drop=True)
-    for _, row in exit_rows.iterrows():
+    exit_mask = df["event"].eq("exit") if "event" in df.columns else df["pnl"].ne(0)
+    exit_rows = df[exit_mask]
+    for row_idx, row in exit_rows.iterrows():
+        exit_time = pd.Timestamp(row.get("timestamp", "2000-01-01"))
+        entry_time = exit_time
+        # BaseEngine emits adjacent entry/exit pairs. Recover entry dates only
+        # from an explicit matching pair; legacy/exit-only files stay unchanged.
+        if "event" in df.columns and row_idx > 0:
+            entry = df.iloc[row_idx - 1]
+            expected_side = {"sell": "buy", "buy": "sell"}.get(row.get("side"))
+            if (
+                entry["event"] == "entry"
+                and entry.get("code") == row.get("code")
+                and expected_side is not None
+                and entry.get("side") == expected_side
+            ):
+                candidate_time = pd.to_datetime(entry.get("timestamp"), errors="coerce")
+                try:
+                    if pd.notna(candidate_time) and candidate_time <= exit_time:
+                        entry_time = candidate_time
+                except TypeError:
+                    pass  # Incompatible timestamp timezones cannot form a pair.
         hold = pd.to_numeric(row.get("holding_bars"), errors="coerce")
         if pd.isna(hold):
             hold = pd.to_numeric(row.get("holding_days", 0), errors="coerce")
@@ -414,8 +446,8 @@ def _load_trades(run_dir: Path) -> List[TradeRecord]:
                 direction=1 if row.get("side") == "sell" else -1,
                 entry_price=0.0,
                 exit_price=float(row.get("price", 0)),
-                entry_time=pd.Timestamp(row.get("timestamp", "2000-01-01")),
-                exit_time=pd.Timestamp(row.get("timestamp", "2000-01-01")),
+                entry_time=entry_time,
+                exit_time=exit_time,
                 size=float(row.get("qty", 0)),
                 leverage=1.0,
                 pnl=float(row.get("pnl", 0)),
@@ -492,6 +524,7 @@ def main(run_dir: Path) -> Dict[str, Any]:
     """Run all three validations on existing backtest artifacts.
 
     Reads equity.csv, trades.csv, and config.json from run_dir.
+    Runs all three tools with saved validation settings, defaulting missing ones.
 
     Args:
         run_dir: Directory with artifacts/ subdirectory.
@@ -499,7 +532,7 @@ def main(run_dir: Path) -> Dict[str, Any]:
     Returns:
         Validation results dict.
     """
-    # Load config for initial_cash
+    # Load initial cash and saved validation settings.
     config_path = run_dir / "config.json"
     if config_path.exists():
         config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -510,11 +543,13 @@ def main(run_dir: Path) -> Dict[str, Any]:
     equity = _load_equity(run_dir)
     trades = _load_trades(run_dir)
 
-    results = {
-        "monte_carlo": monte_carlo_test(trades, initial_capital),
-        "bootstrap": bootstrap_sharpe_ci(equity),
-        "walk_forward": walk_forward_analysis(equity, trades),
-    }
+    # Standalone validation always runs all tools, even when the original run
+    # enabled only a subset. Reuse dispatcher defaults and parameter guards.
+    settings = {name: {} for name in ("monte_carlo", "bootstrap", "walk_forward")}
+    saved_settings = config.get("validation")
+    if isinstance(saved_settings, dict):
+        settings.update(saved_settings)
+    results = run_validation({"validation": settings}, equity, trades, initial_capital)
 
     out = run_dir / "artifacts" / "validation.json"
     safe_results = write_validation_json(out, results)

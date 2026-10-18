@@ -156,6 +156,21 @@ const GUIDE_DEFS: Record<
       docsLabel: t("settings.channels.guides.feishu.docsLabel"),
     }),
   },
+  discord: {
+    docsUrl: "https://discord.com/developers/docs/intro",
+    build: (t) => ({
+      title: t("settings.channels.guides.discord.title"),
+      intro: t("settings.channels.guides.discord.intro"),
+      steps: [
+        t("settings.channels.guides.discord.step1"),
+        t("settings.channels.guides.discord.step2"),
+        t("settings.channels.guides.discord.step3"),
+        t("settings.channels.guides.discord.step4"),
+        t("settings.channels.guides.discord.step5"),
+      ],
+      docsLabel: t("settings.channels.guides.discord.docsLabel"),
+    }),
+  },
 };
 
 export interface ChannelConfigPanelProps {
@@ -294,6 +309,30 @@ export function ChannelConfigPanel({
       "settings.channels.fields.feishu.streaming": { label: t("settings.channels.fields.feishu.streaming.label"), help: t("settings.channels.fields.feishu.streaming.help") },
       "settings.channels.fields.feishu.domain": { label: t("settings.channels.fields.feishu.domain.label"), help: t("settings.channels.fields.feishu.domain.help") },
       "settings.channels.fields.feishu.topic_isolation": { label: t("settings.channels.fields.feishu.topic_isolation.label"), help: t("settings.channels.fields.feishu.topic_isolation.help") },
+      "settings.channels.fields.slack.bot_token": { label: t("settings.channels.fields.slack.bot_token.label"), help: t("settings.channels.fields.slack.bot_token.help") },
+      "settings.channels.fields.slack.app_token": { label: t("settings.channels.fields.slack.app_token.label"), help: t("settings.channels.fields.slack.app_token.help") },
+      "settings.channels.fields.slack.user_token_read_only": { label: t("settings.channels.fields.slack.user_token_read_only.label"), help: t("settings.channels.fields.slack.user_token_read_only.help") },
+      "settings.channels.fields.slack.reply_in_thread": { label: t("settings.channels.fields.slack.reply_in_thread.label"), help: t("settings.channels.fields.slack.reply_in_thread.help") },
+      "settings.channels.fields.slack.react_emoji": { label: t("settings.channels.fields.slack.react_emoji.label"), help: t("settings.channels.fields.slack.react_emoji.help") },
+      "settings.channels.fields.slack.done_emoji": { label: t("settings.channels.fields.slack.done_emoji.label"), help: t("settings.channels.fields.slack.done_emoji.help") },
+      "settings.channels.fields.slack.include_thread_context": { label: t("settings.channels.fields.slack.include_thread_context.label"), help: t("settings.channels.fields.slack.include_thread_context.help") },
+      "settings.channels.fields.slack.thread_context_limit": { label: t("settings.channels.fields.slack.thread_context_limit.label"), help: t("settings.channels.fields.slack.thread_context_limit.help") },
+      "settings.channels.fields.slack.allow_from": { label: t("settings.channels.fields.slack.allow_from.label"), help: t("settings.channels.fields.slack.allow_from.help") },
+      "settings.channels.fields.slack.group_policy": { label: t("settings.channels.fields.slack.group_policy.label"), help: t("settings.channels.fields.slack.group_policy.help") },
+      "settings.channels.fields.slack.group_allow_from": { label: t("settings.channels.fields.slack.group_allow_from.label"), help: t("settings.channels.fields.slack.group_allow_from.help") },
+      "settings.channels.fields.slack.group_require_mention": { label: t("settings.channels.fields.slack.group_require_mention.label"), help: t("settings.channels.fields.slack.group_require_mention.help") },
+      "settings.channels.fields.discord.token": { label: t("settings.channels.fields.discord.token.label"), help: t("settings.channels.fields.discord.token.help") },
+      "settings.channels.fields.discord.allow_from": { label: t("settings.channels.fields.discord.allow_from.label"), help: t("settings.channels.fields.discord.allow_from.help") },
+      "settings.channels.fields.discord.allow_channels": { label: t("settings.channels.fields.discord.allow_channels.label"), help: t("settings.channels.fields.discord.allow_channels.help") },
+      "settings.channels.fields.discord.intents": { label: t("settings.channels.fields.discord.intents.label"), help: t("settings.channels.fields.discord.intents.help") },
+      "settings.channels.fields.discord.group_policy": { label: t("settings.channels.fields.discord.group_policy.label"), help: t("settings.channels.fields.discord.group_policy.help") },
+      "settings.channels.fields.discord.read_receipt_emoji": { label: t("settings.channels.fields.discord.read_receipt_emoji.label"), help: t("settings.channels.fields.discord.read_receipt_emoji.help") },
+      "settings.channels.fields.discord.working_emoji": { label: t("settings.channels.fields.discord.working_emoji.label"), help: t("settings.channels.fields.discord.working_emoji.help") },
+      "settings.channels.fields.discord.working_emoji_delay": { label: t("settings.channels.fields.discord.working_emoji_delay.label"), help: t("settings.channels.fields.discord.working_emoji_delay.help") },
+      "settings.channels.fields.discord.streaming": { label: t("settings.channels.fields.discord.streaming.label"), help: t("settings.channels.fields.discord.streaming.help") },
+      "settings.channels.fields.discord.proxy": { label: t("settings.channels.fields.discord.proxy.label"), help: t("settings.channels.fields.discord.proxy.help") },
+      "settings.channels.fields.discord.proxy_username": { label: t("settings.channels.fields.discord.proxy_username.label"), help: t("settings.channels.fields.discord.proxy_username.help") },
+      "settings.channels.fields.discord.proxy_password": { label: t("settings.channels.fields.discord.proxy_password.label"), help: t("settings.channels.fields.discord.proxy_password.help") },
     }),
     [t],
   );
@@ -553,6 +592,36 @@ export function ChannelConfigPanel({
               disabled={formDisabled}
             />
           </div>
+          {text.help ? <span className={hintClass}>{text.help}</span> : null}
+        </div>
+      );
+    }
+
+    if (field.choices?.length) {
+      const current = typeof values[field.key] === "string" ? (values[field.key] as string) : "";
+      return (
+        <div key={field.key} className="grid gap-2">
+          <label className={labelClass} htmlFor={inputId}>
+            {text.label}
+            {field.required ? (
+              <span className="ms-1 text-destructive" aria-hidden="true">*</span>
+            ) : null}
+          </label>
+          <select
+            id={inputId}
+            value={current}
+            onChange={(event) => setValue(field.key, event.target.value)}
+            className={fieldClass}
+            disabled={formDisabled}
+          >
+            {/* A stored value outside the enum stays visible instead of silently snapping to an option. */}
+            {current && !field.choices.includes(current) ? (
+              <option value={current}>{current}</option>
+            ) : null}
+            {field.choices.map((choice) => (
+              <option key={choice} value={choice}>{choice}</option>
+            ))}
+          </select>
           {text.help ? <span className={hintClass}>{text.help}</span> : null}
         </div>
       );

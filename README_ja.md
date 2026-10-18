@@ -52,14 +52,31 @@
 
 > ⚠️ **セキュリティ警告：** Xアカウント `VibeTrading_HKU`、Virtualsプロジェクト `101845`、およびトークンコントラクト `0x640BDBF77b6447E8b7DB7894cED84BD1c40571f4` は、いずれもVibe-Trading公式のものではありません。Vibe-Tradingはこれまで、いかなるトークンやミームコインも発行・公認していません。購入、ウォレットの接続、署名は行わないでください。[詳細](SECURITY.md#official-channels--impersonation)
 
+- **2026-10-17** 🛠️ **Token 使用量とリサーチの信頼性**：実行詳細・チャット・swarm でモデル使用量を確認できます（[#1890](https://github.com/HKUDS/Vibe-Trading/pull/1890)）。リサーチと任意のバックグラウンドジョブに共通スケジューラを導入しました（[#1893](https://github.com/HKUDS/Vibe-Trading/pull/1893)）。実取引のスケジューラは変更していません。取引記録の日時結合、根拠ファイルのパス、因子の同値処理、メモリ保存先、数値エラー処理、チャネル進捗を修正。詳細は [CHANGELOG](CHANGELOG.md)。
+
+- **2026-10-16** 🛠️ **認証情報の保護と金融計算の修正**：チャネル・モデルの認証情報のマスキングを拡充（[#1880](https://github.com/HKUDS/Vibe-Trading/pull/1880)）、ローカルデータ更新後の価格キャッシュを更新（[#1879](https://github.com/HKUDS/Vibe-Trading/pull/1879)）、ドテン売買の手数料の二重計上を修正（[#1891](https://github.com/HKUDS/Vibe-Trading/pull/1891)）。欧州形式の取引金額、厳密な JSON、ゼロ・負値の比較、保有期間、最低ウェイト、横ばいの高値・安値判定、レポートのパスも修正。[CHANGELOG](CHANGELOG.md) を参照。
+
+- **2026-10-15** 🛠️ **モデル利用費用の管理とリサーチの信頼性**：ライブランナーは判断ごとに独立したセッションを使い、判断間隔と永続化された日次利用上限を設定できます（[#1854](https://github.com/HKUDS/Vibe-Trading/issues/1854)）。軽量なバックテストプレビューと完全な取引履歴を両立（[#1853](https://github.com/HKUDS/Vibe-Trading/pull/1853)、[#1865](https://github.com/HKUDS/Vibe-Trading/pull/1865)）。百分率の根拠計算、コピーした実行履歴の重複排除、スイング信号の発生時点、暗号資産のルーティング、認証情報のマスキングを修正しました。範囲と制約は [CHANGELOG](CHANGELOG.md) を参照。
+
+- **2026-10-14** 🛠️ **バックテスト・検索・文書読み取りの修正**：リスク指標と資産推移のエクスポートに最初のバーの損益を反映（[#1844](https://github.com/HKUDS/Vibe-Trading/pull/1844)）。セッション検索は重複するセッションを除き、タイトルを保持して一致箇所の前後を表示します（[#1827](https://github.com/HKUDS/Vibe-Trading/pull/1827)、[#1834](https://github.com/HKUDS/Vibe-Trading/pull/1834)）。PDF／Office の内容抽出を改善し、解決できない根拠参照を拒否。金融計算の入力検証と認証情報のマスキングも強化しました。
+
+<details>
+<summary>過去のニュース</summary>
+
+- **2026-10-13** 🧩 **ポートフォリオ取り込み・戦略適応・調査ツール**：extraETF の保有明細を読み取り専用で取り込み、日付付きのユーロ評価と資産配分案に対応。適応後の子戦略は自身のバックテスト結果を根拠に使います（[#1170](https://github.com/HKUDS/Vibe-Trading/issues/1170)、[#1149](https://github.com/HKUDS/Vibe-Trading/issues/1149)）。接続テスト済みのカスタムモデル、Pixel Office の共有手動タスクボード、ペルシャ語・トルコ語 UI、mStock の読み取り専用照会、Gildata の調査データを追加しました。
+  決済通貨別の損益集計、Futu の市場選択と取得原価、香港株の銘柄別売買単位、保存済み検証設定、実行進捗を修正。数値検証ルールの明示的な登録とエージェントループの分割も完了しました。mStock は引き続きポートフォリオ集計の対象外で、Robinhood のオプション注文は未対応です。範囲と制約は [CHANGELOG](CHANGELOG.md) を参照。
+
+- **2026-10-12** 🧮 **調査とバックテストの更新**：初回約定、清算時の寄与分析、ドローダウン期間、評価許容誤差、因子 IC の SEC 開示タイミングを修正（[#1780](https://github.com/HKUDS/Vibe-Trading/pull/1780)–[#1794](https://github.com/HKUDS/Vibe-Trading/pull/1794)）。基本面・評価因子 13 種、ブラジル市場データとバックテスト、明示的に有効化する ZimaOS テンプレート、Feishu の実行進捗を追加。範囲と制約は [CHANGELOG](CHANGELOG.md) を参照。
+
+- **2026-10-11** 🛠️ **優先度の高い 5 件を修正**：導出値の各データ項に根拠を要求し、未対応の実取引オプション注文を拒否。オフライン基準は指定ソースを維持し、取引記録は損益ゼロの決済を識別、Codex ツールは任意引数を保持します（[#1622](https://github.com/HKUDS/Vibe-Trading/issues/1622)、[#1779](https://github.com/HKUDS/Vibe-Trading/pull/1779)、[#1781](https://github.com/HKUDS/Vibe-Trading/pull/1781)、[#1785](https://github.com/HKUDS/Vibe-Trading/pull/1785)）。
+
+- **2026-10-10** 🛠️ **Slack/Discord 設定と再現可能な調査**：翻訳済みフォームでボット認証情報を検証できます。テストは変更を保存しません（[#1764](https://github.com/HKUDS/Vibe-Trading/pull/1764)、[#1777](https://github.com/HKUDS/Vibe-Trading/pull/1777)）。ポートフォリオ調査は不変のスナップショットを再利用でき、Web から認証情報や口座番号を除いた JSON を出力できます（[#1769](https://github.com/HKUDS/Vibe-Trading/pull/1769)）。指標は取得日と入力の指紋を報告し、破損したセッション記録は元のファイルを書き換えずに復旧します。メモリ検索、認証情報の秘匿、取引履歴の識別も修正しました。[CHANGELOG](CHANGELOG.md) を参照。
+
 - **2026-10-09** 🛠️ **チャンネル設定とバックテストの修正**：再接続なしの設定更新で URL 内の認証情報と WeChat 認証後のサーバーアドレスを保持し、保存・再起動の結果を Web で9言語表示します（[#1737](https://github.com/HKUDS/Vibe-Trading/pull/1737)、[#1742](https://github.com/HKUDS/Vibe-Trading/pull/1742)、[#1744](https://github.com/HKUDS/Vibe-Trading/pull/1744)）。複数市場のオプション価格に使うボラティリティは各時点までのタイムスタンプだけで計算し、ドローダウンには初期資金を反映。暗号資産・貴金属のデータ取得経路、香港株の重複判定、キャッシュ復旧、科学表記の金額、欠損資産額の検証を修正しました。mootdx は標準の A 株取得経路から外れます。全13件は [CHANGELOG](CHANGELOG.md)。
 
 - **2026-10-08** 🔐 **PDF レポートのパスワード保護とブローカー読み取り修正**：定期メール PDF に AES-256 保護を選択でき、Web、CLI、エージェント確認画面に反映されます。パスワードは非公開のチャネル設定だけに保存します（[#1709](https://github.com/HKUDS/Vibe-Trading/pull/1709)）。KIS は三つの取引経路を照会し、明示的なトークン失効を一度だけ再取得、不完全な読み取りはエラーにします（[#1726](https://github.com/HKUDS/Vibe-Trading/pull/1726)）。説明ラベルの後の導出式を保持し、証拠検証を維持します（[#1728](https://github.com/HKUDS/Vibe-Trading/pull/1728)）。
 
 - **2026-10-07** 🛠️ **リサーチの継続性とリスク指標の修正**：実行状態をシステムプロンプトから分離し、安定したプレフィックスを保ちます（[#1708](https://github.com/HKUDS/Vibe-Trading/pull/1708)）。市場間の日付整列、欠損価格前後のリターン、全標本によるオプションのソルティノ比率を修正しました（[#1710](https://github.com/HKUDS/Vibe-Trading/pull/1710)、[#1717](https://github.com/HKUDS/Vibe-Trading/pull/1717)、[#1727](https://github.com/HKUDS/Vibe-Trading/pull/1727)）。データ取得テストは共通の OHLCV 契約を使い、信用評価、スタイル・エクスポージャー、時系列検証、監査診断も改善しました。
-
-<details>
-<summary>過去のニュース</summary>
 
 - **2026-10-06** 🛠️ **ライブ運用制御とレポート修正**：ライブランナーの停止は実行中の分析をキャンセルしてスケジューラーの終了を待ち、起動中のキャンセルと API 終了にも対応します。状態の時刻単位も修正しました（[#1704](https://github.com/HKUDS/Vibe-Trading/pull/1704)）。緊急キャンセル・決済処理は不正なレコードを除外して残りの注文・保有を処理します（[#1703](https://github.com/HKUDS/Vibe-Trading/pull/1703)）。ブローカーごとにスケジュールを保存し、並行書き込みと部分書き込みに対応。米国株の短縮取引日は早い閉場時刻を守ります（[#1706](https://github.com/HKUDS/Vibe-Trading/pull/1706)）。レポート修正は検証済みの数値を保持し、省略された指摘を検証済みと誤認させません（[#1702](https://github.com/HKUDS/Vibe-Trading/pull/1702)）。
 
@@ -374,7 +391,7 @@ Vibe-Trading は、金融に関する問いを実行可能な分析へ変換す�
 | **アナリストチームを走らせる** | 投資、クオンツ、暗号資産、マクロ、リスクのワークフロー向けマルチエージェント・リサーチレビュー。 |
 | **リサーチを IM チャンネルへ接続する** | WebSocket、Telegram、Slack、Discord、Matrix、WhatsApp、Signal、QQ/NapCat、WeChat/WeCom、Feishu/Lark、DingTalk、Teams、email、Mochat から同じ session runtime を CLI、REST、Web UI で管理。 |
 | **使える artifacts を出力する** | レポート、TradingView Pine Script、TDX、MetaTrader 5、MCP tools、後続リサーチセッション。 |
-| **事前構築 alpha zoo をベンチ** | 462 個の alpha 因子（Qlib 158 + Kakushadze 101 + GTJA 191 + academic + PIT-safe fundamental）に対し、1 行 CLI で IC + IR + alive/reversed/dead 分類を実行 |
+| **事前構築 alpha zoo をベンチ** | 478 個の alpha 因子（Qlib 158 + Kakushadze 101 + GTJA 191 + academic + PIT-safe fundamental）に対し、1 行 CLI で IC + IR + alive/reversed/dead 分類を実行 |
 | **相関レジームを見抜く** | `/correlation` 面上のエッジ密度 + ヒステリシスのタイムライン。市場が 1 つのブロックに融合するタイミングを示す —— シグナルではなく記述的なリスクコンテキスト。 |
 
 ---
@@ -458,7 +475,7 @@ vibe-trading connector install /tmp/my-broker
 
 ## 📡 データソースとスマートフォールバック
 
-1 回の `get_market_data` 呼び出しで **28 のマーケットデータソース**（うち **QVeris** はオプションの有料マーケットプレイス）にアクセスできます。`source: "auto"` を指定すれば、loader が銘柄に応じてソースを選び、**IP 規制リスク**の順に並んだ市場別チェーンをたどります。規制を受けない公開ソースを先に、スロットリングや key を要するソースを最後に試します。設定不要、単一障害点なし。
+1 回の `get_market_data` 呼び出しで **29 のマーケットデータソース**（うち **QVeris** はオプションの有料マーケットプレイス）にアクセスできます。`source: "auto"` を指定すれば、loader が銘柄に応じてソースを選び、**IP 規制リスク**の順に並んだ市場別チェーンをたどります。規制を受けない公開ソースを先に、スロットリングや key を要するソースを最後に試します。設定不要、単一障害点なし。
 
 | Source | Markets | Auth | Role |
 |--------|---------|------|------|
@@ -481,19 +498,22 @@ vibe-trading connector install /tmp/my-broker
 | `tickerall` | forex / metals | key + アカウント（読み取り専用） | 同じブローカーの MT5 フィードを**ホスト型**で — ローカル端末不要、OS を問わない（明示指定のみ、auto フォールバックには決して入らない） |
 | `pykrx` | 韓国（KRX：KOSPI/KOSDAQ） | 不要 | `.KS` / `.KQ` の KOSPI / KOSDAQ 日足（任意の `krx` extra） |
 | `india_broker` | インド（NSE/BSE） | ブローカーログイン | `.NS` / `.BO` 向けの読み取り専用 Zerodha / Shoonya / Dhan bars（フォールバックチェーン末尾） |
+| `b3_cotahist` | Brazil (B3) | none | ローカル B3 公式現物・単元未満株の日足（未調整、BRL）。`python -m src.br_data sync` で取得する `.SA` のオフライン代替ソース |
 | `local` | any | none | your own CSV / Parquet / DuckDB via `local:` prefix |
 
 **フォールバックチェーン（IP 規制リスク順）：**
 
 - **A 株** → `tencent` · `eastmoney` · `baostock` · `akshare` · `tushare` · `gildata` · `local`
 - **米国株** → `yahoo` · `stooq` · `sina` · `eastmoney` · `yfinance` · `tiingo` · `fmp` · `finnhub` · `alphavantage` · `longbridge` · `akshare` · `local`
-- **香港株** → `tencent` · `eastmoney` · `yahoo` · `futu` · `akshare` · `yfinance` · `tushare` · `longbridge` · `local`
+- **香港株** → `tencent` · `eastmoney` · `yahoo` · `futu` · `akshare` · `yfinance` · `tushare` · `longbridge` · `gildata` · `local`
 - **インド株（NSE/BSE）** → `yahoo` · `yfinance` · `india_broker` · `local`
+- **Brazil (B3 `.SA`)** → `yahoo` · `yfinance` · `b3_cotahist` · `local`
 - **韓国（KOSPI/KOSDAQ）** → `pykrx` · `yahoo` · `yfinance` · `local`
+- **指数** → `yahoo` · `yfinance` · `gildata` · `local`
 - **英国（LSE）** → `yahoo` · `yfinance` · `local` *（GBP/GBp と明示されたクォートのみ）*
 - **暗号資産** → `okx` · `binance` · `ccxt` · `yfinance` · `local`
 - **為替/貴金属** → `mt5` · `akshare` · `yfinance` · `local`
-- **カナダ / ベトナム / アルゼンチン / 指数** → `yahoo` · `yfinance` · `local`
+- **カナダ / ベトナム / アルゼンチン** → `yahoo` · `yfinance` · `local`
 - **中国先物** → `akshare` · `local` &nbsp;·&nbsp; **ファンド** → `tushare` · `akshare` · `local` &nbsp;·&nbsp; **マクロ** → `akshare` · `tushare` · `local`
 
 ### Longbridge を明示的に使う
@@ -610,15 +630,16 @@ clone から実行してください（`pip install -e .`）。
 </details>
 
 <details>
-<summary><b>ブローカー connectors</b> <sub>18 ブローカー — read + paper、対応先では bounded-live</sub></summary>
+<summary><b>ブローカー connectors</b> <sub>19 ブローカー — read + paper、対応先では bounded-live</sub></summary>
 
-connector-first のプロファイル。多くは read + ペーパー口座での発注に対応します —— IBKR は読み取り専用、Robinhood はライブのみ（ペーパー口座なし）、Scalable Capital は読み取り専用（ペーパー口座が存在しません）、Trading 212 と Toss Securities はペーパーを含め発注を一切拒否します。ライブ発注はユーザーが定義した mandate（銘柄許可リスト、発注サイズ / エクスポージャー上限、1 日の取引回数上限、即時 kill switch）で制限され、資金を預かることは一切ありません —— 執行するのはブローカーです。発注系ツールは MCP に公開されません（agent + CLI のみ）。リサーチ / バックテスト経路は構造的にあらゆるライブ endpoint から遮断されています。
+connector-first のプロファイル。多くは read + ペーパー口座での発注に対応します —— IBKR は読み取り専用、Robinhood はライブのみ（ペーパー口座なし）、Scalable Capital は読み取り専用（ペーパー口座が存在しません）、mStock（インド）は Type B REST による読み取り専用ライブです（ペーパー口座なし）、Trading 212 と Toss Securities はペーパーを含め発注を一切拒否します。ライブ発注はユーザーが定義した mandate（銘柄許可リスト、発注サイズ / エクスポージャー上限、1 日の取引回数上限、即時 kill switch）で制限され、資金を預かることは一切ありません —— 執行するのはブローカーです。発注系ツールは MCP に公開されません（agent + CLI のみ）。リサーチ / バックテスト経路は構造的にあらゆるライブ endpoint から遮断されています。
 
 | Broker | Markets | Capabilities |
 |--------|---------|--------------|
 | **IBKR** | global | local TWS / Gateway, read-only |
 | **Robinhood** | US | Agentic MCP (desktop OAuth) — 株式の読み取り + 制限付き株式ライブ注文；オプション注文は未対応 |
 | **Scalable Capital** | DE / EU | Agentic MCP (desktop OAuth) — 完全読み取り専用、ペーパー口座なし |
+| **mStock** | インド（NSE/BSE） | 保有銘柄・ネットポジションを別々に読み取り。ポートフォリオ集計・発注不可 |
 | **Tiger** | US / HK / A | read + paper + bounded live |
 | **Alpaca** | US | read + paper + bounded live (+ TAP credential-isolation mode) |
 | **OKX** · **Binance** | crypto | read + paper + bounded live |
@@ -659,9 +680,9 @@ Paper-vs-live is a **structural per-broker runtime guard** (account-id format, h
 </details>
 
 <details>
-<summary><b>Alpha Zoo</b> <sub>5 つのファミリーに渡る 462 個の事前構築 quant alpha</sub></summary>
+<summary><b>Alpha Zoo</b> <sub>5 つのファミリーに渡る 478 個の事前構築 quant alpha</sub></summary>
 
-- 🧬 462 個のクロスセクショナル alpha、オペレーター層でルックアヘッドを禁止
+- 🧬 478 個のクロスセクショナル alpha、オペレーター層でルックアヘッドを禁止
 - 📈 IC + IR + alive/reversed/dead 分類を 1 つの CLI コマンドで
 - 🔬 AST 純関数ゲート + 300 行のルックアヘッド sentinel テスト + `pytest-socket` によるネットワーク遮断
 - 📦 Qlib には Apache-2 帰属表示、各 zoo ごとに `LICENSE.md` で formula を数学的内容として宣言
@@ -680,7 +701,7 @@ Paper-vs-live is a **structural per-broker runtime guard** (account-id format, h
 </details>
 
 <details>
-<summary><b>Backtest Engines</b> <sub>10 engines + options portfolio, cross-market composite</sub></summary>
+<summary><b>Backtest Engines</b> <sub>11 engines + options portfolio, cross-market composite</sub></summary>
 
 | Engine | Market | Notes |
 |--------|--------|-------|
@@ -689,6 +710,7 @@ Paper-vs-live is a **structural per-broker runtime guard** (account-id format, h
 | **IndiaEquity** | India (NSE/BSE) | T+1, circuit bands, config-driven STT / stamp / SEBI / GST cost stack |
 | **KoreaEquity** | 韓国（KRX：KOSPI/KOSDAQ） | ロングオンリー、統一呼値グリッド上で ±30% 制限値幅を約定時点に判定、2026 年 0.20% の証券取引税 |
 | **VietnamEquity** | ベトナム（HOSE） | ロングオンリー、T+2 決済ホールド、10/50/100 ドンの呼値グリッド上で ±7% 制限値幅、100 株単元、売却側 0.1% 課税 |
+| **BrazilEquity** | Brazil (B3) | BRL, B3 trading + settlement fees, configurable broker fee, 1- or 100-share lots, R$0.01 tick, shorting allowed |
 | **Crypto** | crypto spot / USD-M perps | funding settlements, execution/mark split |
 | **ChinaFutures** · **GlobalFutures** | futures | margin, contract multipliers |
 | **Forex** | FX / metals | via the `mt5` loader |
@@ -700,7 +722,7 @@ Bars: 1m / 5m / 15m / 30m / 1H / 4H / 1D, plus weekly / monthly (1W / 1M, built 
 </details>
 
 <details>
-<summary><b>Quant Library</b> <sub>23 モジュール・306 個のテスト済み関数、すべての経路から呼び出し可能</sub></summary>
+<summary><b>Quant Library</b> <sub>24 モジュール・308 個のテスト済み関数、すべての経路から呼び出し可能</sub></summary>
 
 `src/quantlib` は、agent が必要とする金融数学のそれぞれについて、テスト済みの実装を
 **1 つだけ**保持します。skill はこれらを **import** するようになり、markdown コード
@@ -973,7 +995,7 @@ Vibe-Trading は tool-heavy agent です。skills、backtests、memory、swarms 
 vibe-trading               # interactive TUI
 vibe-trading run -p "..."  # single run
 vibe-trading serve         # API server
-vibe-trading alpha list    # 462 個の事前構築 alpha を閲覧；show / bench / compare / export-manifest サブコマンド利用可
+vibe-trading alpha list    # 478 個の事前構築 alpha を閲覧；show / bench / compare / export-manifest サブコマンド利用可
 vibe-trading playbook list # 定期リサーチのテンプレート 5 本；show / create サブコマンド利用可
 vibe-trading channels status --local  # IM チャンネル設定と install hints を確認
 vibe-trading provider doctor  # 秘匿処理済みの provider/proxy/package 診断を出力
@@ -1284,7 +1306,7 @@ curl -X POST http://localhost:8899/scheduled-runs/playbooks/premarket-brief \
 
 ## 🔌 MCP Plugin
 
-Vibe-Trading は MCP-compatible client 向けに 76 MCP tools を公開します。stdio subprocess として動作し、server setup は不要です。Core research tools は HK/US/crypto で API key なしに動作し、trading connector tools は選択中の connector profile を使います。LLM key が必要なのは `run_swarm` のみです。
+Vibe-Trading は MCP-compatible client 向けに 81 MCP tools を公開します。stdio subprocess として動作し、server setup は不要です。Core research tools は HK/US/crypto で API key なしに動作し、trading connector tools は選択中の connector profile を使います。LLM key が必要なのは `run_swarm` のみです。
 
 **環境変数:** server は client 自身が spawn するため、shell の `export` は届きません —— client の `env` block に設定してください。生成された backtest code は allowed run roots 内に制限されるので、結果を自分の作業 directory に書き出すには `VIBE_TRADING_ALLOWED_RUN_ROOTS` が必要です:
 
@@ -1340,7 +1362,7 @@ vibe-trading-mcp --transport sse   # legacy SSE (deprecated)
 
 </details>
 
-**公開される MCP tools（76）:** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`.
+**公開される MCP tools（81）:** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`.
 
 ### SWARM の外部 MCP tools
 
@@ -1706,7 +1728,7 @@ Vibe-Trading/
 ├── agent/                          # バックエンド (Python)
 │   ├── cli/                        # CLI パッケージ — インタラクティブ TUI + サブコマンド
 │   ├── api_server.py               # FastAPI サーバー — runs、sessions、upload、swarm、SSE
-│   ├── mcp_server.py               # MCP サーバー — OpenClaw / Claude Desktop 向け 76 tools
+│   ├── mcp_server.py               # MCP サーバー — OpenClaw / Claude Desktop 向け 81 tools
 │   │
 │   ├── src/
 │   │   ├── agent/                  # ReAct エージェントコア
@@ -1721,7 +1743,7 @@ Vibe-Trading/
 │   │   ├── memory/                 # クロスセッション永続メモリ
 │   │   │   └── persistent.py       #   ファイルベースメモリ (~/.vibe-trading/memory/)
 │   │   │
-│   │   ├── tools/                  # 109 個の自動検出エージェントツール
+│   │   ├── tools/                  # 112 個の自動検出エージェントツール
 │   │   │   ├── backtest_tool.py    #   バックテスト実行
 │   │   │   ├── remember_tool.py    #   クロスセッションメモリ (save/recall/forget)
 │   │   │   ├── skill_writer_tool.py #  skill CRUD (save/patch/delete/file)
@@ -1730,7 +1752,7 @@ Vibe-Trading/
 │   │   │   ├── web_search_tool.py  #   DuckDuckGo Web 検索
 │   │   │   └── ...                 #   bash、file I/O、factor analysis、options、alpha browser + bench など
 │   │   │
-│   │   ├── factors/                # Alpha Zoo — 5 つのファミリーにまたがる 462 個の alpha
+│   │   ├── factors/                # Alpha Zoo — 5 つのファミリーにまたがる 478 個の alpha
 │   │   │   ├── base.py             #   19 個のオペレーター (rank/scale/ts_*/delta/decay_linear/safe_div/vwap)
 │   │   │   ├── registry.py         #   AST 限定のメタデータ読み込み + 遅延計算 + sanity gate
 │   │   │   ├── bench_runner.py     #   IC + alive/reversed/dead 分類
@@ -1746,8 +1768,8 @@ Vibe-Trading/
 │   │   └── providers/              # LLM プロバイダー抽象化
 │   │
 │   └── backtest/                   # バックテストエンジン
-│       ├── engines/                #   9 エンジン + クロスマーケット composite engine + options_portfolio
-│       ├── loaders/                #   28 ソース: tushare、okx、nobitex、wallex、binance、yfinance、akshare、baostock、tencent、mootdx、ccxt、futu、pykrx、local、eastmoney、sina、stooq、yahoo、finnhub、alphavantage、tiingo、fmp、longbridge、mt5、qveris、india_broker、tickerall、gildata
+│       ├── engines/                #   10 エンジン + クロスマーケット composite engine + options_portfolio
+│       ├── loaders/                #   29 ソース: tushare、okx、nobitex、wallex、binance、yfinance、akshare、baostock、tencent、mootdx、ccxt、futu、pykrx、local、eastmoney、sina、stooq、yahoo、finnhub、alphavantage、tiingo、fmp、longbridge、mt5、qveris、india_broker、tickerall、gildata, b3_cotahist
 │       │   ├── base.py             #   DataLoader Protocol
 │       │   └── registry.py         #   Registry + 自動フォールバックチェーン
 │       └── optimizers/             #   MVO、equal vol、max div、risk parity
@@ -1813,7 +1835,7 @@ Vibe-Trading は **[HKUDS](https://github.com/HKUDS)** agent ecosystem の一部
 | **Data Bridge** | Bring-your-own data: local CSV/Parquet/SQL connectors with schema mapping | ローカルローダー出荷済み |
 | **Options Lab** | Vol surface, Greeks dashboard, payoff/scenario explorer | Planned |
 | **Portfolio Studio** | Risk x-ray, constraints, turnover-aware optimizer, rebalance notes | Turnover を考慮したオプティマイザは **0.1.11 でリリース済み**；残りは Planned |
-| **Alpha Zoo** | 462 個の事前構築 alpha 因子（Qlib 158 + Kakushadze 101 + GTJA 191 + academic + fundamental）、1 行 CLI でベンチ、agent 統合、Web UI | **0.1.8 でリリース済み**、0.1.12 まで拡張 |
+| **Alpha Zoo** | 478 個の事前構築 alpha 因子（Qlib 158 + Kakushadze 101 + GTJA 191 + academic + fundamental）、1 行 CLI でベンチ、agent 統合、Web UI | **0.1.8 でリリース済み**、0.1.12 まで拡張 |
 | **Strategy Development Manager** | Register papers / broker research as factors & strategies with a persistent store + automated IC/Sharpe decay lifecycle | **0.1.11 でリリース済み** |
 | **Correlation Regime** | Edge-density + hysteresis regime timeline layered on `/correlation` — spot when markets fuse into one bloc | **0.1.12 でリリース済み** |
 | **Research Delivery** | Slack / Telegram / email-style IM channels 経由の scheduled briefs と live research sessions | スケジューラ + IM Runtime 出荷済み |

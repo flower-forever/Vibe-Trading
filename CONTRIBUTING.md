@@ -55,6 +55,27 @@ For AI-assisted or automation-assisted contributions, also see
 local checks, higher-risk broker/MCP/credential surfaces, and the expected PR
 risk notes for agent-authored changes.
 
+## Keep internal documents local
+
+The repository-root `docs/` directory holds local working notes and must not
+be committed. Local agent instructions and memory files (`AGENTS.md`,
+`AGENTS.override.md`, `CLAUDE.md`, `CLAUDE.local.md`, `MEMORY.md`,
+`CODEX_MEMORY.md`, and `NOTES.md`) must also remain untracked at any depth.
+Publish project documentation in `wiki/docs/` or the relevant source directory.
+
+Before committing, run:
+
+```bash
+python tools/ci_private_files_gate.py
+```
+
+This check also runs through `bash tools/ci_grep_gates.sh` in CI on pushes and
+pull requests. It reads the Git index, so force-adding an ignored document is
+still rejected; ignored local files and public documentation are allowed.
+It prints filenames only, never document contents. If a file was accidentally
+staged, use `git rm --cached -- <path>` to stop tracking it while preserving the
+local copy. This does not erase copies in previous commits.
+
 ## Developer Certificate of Origin (DCO)
 
 Every commit in a community pull request MUST carry a `Signed-off-by:`
@@ -259,6 +280,12 @@ matrix row records a declaration; attach separate evidence for runtime claims.
 - [ ] Record supported order kinds and instrument classes from observed schemas
   or broker documentation; they are not inferred by the matrix. Test unsupported
   requests and malformed or incomplete replies fail closed.
+- [ ] For options, record write-side tool argument names and types separately
+  from read-side contract shapes. Keep unsupported shapes gated off; verify
+  supported shapes through the existing mandate caps against priced notional
+  (premium times multiplier), one audit event per decision, and red-first
+  live-safety tests. Premium notional is not maximum loss or exercise exposure;
+  validate those limits separately where the instrument requires them.
 - [ ] Test live risk-increasing actions through the shared mandate gate,
   including account selection, limits, kill switch, and audit. Verify cancel,
   flatten, position management, and copy paths separately where implemented;
@@ -305,3 +332,39 @@ is broken: runner geography, holidays and upstream changes need checking.
 The 14-day window is a coarse freshness alarm, not a market-calendar guarantee.
 Reports are retained for 30 days. No authenticated source or broker order path
 is exercised.
+
+
+### Grounding checks
+
+`agent/src/agent/grounding/registry.py` declares each check's stable name,
+issue codes, severity and execution phase. The gate walks identity, answer,
+declaration, per-figure role and price-provenance checks in their original
+order. All production checks currently block; `warn` and `log` findings are
+recorded without changing the verdict. Severity is separate from the repair,
+recovery and redaction decisions in `release.py`.
+
+Add a predicate and registration, then a passing/failing answer pair in
+`tests/test_grounding_registry.py`. The pair catalog is checked against the
+runtime registry. Use sparse evidence fixtures. Validation artifacts retain
+`fired_checks` and `check_findings` (name, severity, findings) from actual
+predicate execution; shared issue codes do not imply that other roles fired.
+Run the grounding suites before changing a predicate or its ordering.
+
+
+### Agent loop boundaries
+
+`src/agent/loop.py` owns the iteration and run lifecycle. Keep changes in the
+module that owns the behavior: `tool_lifecycle.py` owns authorization, caches,
+read/write batching, tool timeouts and result recording; `loop_streaming.py`
+owns each response's buffers and progress callbacks; `loop_grounding.py` owns
+the existing final-draft repair/recovery/revision/release sequence. Grounding
+policy stays in `grounding/`, and compaction transforms, usage accounting and
+write-target tracking keep their existing dedicated modules.
+
+The tool lifecycle shares the loop's run-scoped state; it must not grow a
+second cache or ledger. A grounding decision returns correction state and
+whether the loop should retry. Stream state resets at each iteration and
+retains the existing one-retry behavior. When moving a helper, update tests
+to patch the module where it executes; re-exported names preserve imports,
+not monkeypatch propagation. Verify the existing loop, stream, cancellation,
+compaction and grounding suites after an extraction.

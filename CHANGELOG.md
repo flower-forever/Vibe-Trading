@@ -1,9 +1,197 @@
 # Changelog
 
+- Strategy adaptation now binds each child to its own description, universe, date window and hashed backtest artifacts; scoped refresh preserves other strategies' evidence. Agent/MCP, CLI, authenticated REST and the Web welcome entry share the workflow.
+
 All notable changes to Vibe-Trading are documented in this file.
 This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
+
+### Maintenance — 2026-10-18
+
+- Preserve explicit zero financial-rigor parameters and hypothesis backtest
+  validation evidence; accept Shanghai ETF `.SS` aliases (#1906, #1902, #1907).
+- Respect `VIBE_TRADING_HOME` for autopilot runs, alpha-bench caches/reports and
+  Gildata code mappings; keep overflowed Calmar ratios finite, consistent with
+  the existing risk-ratio fallback (#1904, #1901).
+- Tolerate incomplete JSON/UTF-8 Swarm event tails while still rejecting complete
+  invalid records. Deliver Matrix final replies when preview sending failed;
+  CI installs the Matrix extra and executes the regression (#1908, #1903).
+- Match explicit currency identities to financial evidence, including SEC XBRL
+  units and magnitude-scaled amounts. Bare `$` and `¥` remain ambiguous (#1905).
+- Adopt the shared scheduler kernel for live scheduling with adaptive wakeups;
+  concurrent stops await cleanup without cancelling it a second time (#1899).
+
+### Maintenance — 2026-10-17
+
+- Surface provider-reported LLM usage and cache counts in Run Detail, live chat
+  usage, and swarm totals with estimated/unlabeled provenance (#1890). Swarm
+  history hydration restores missing task rows. A reported zero remains zero
+  beside a nonzero count; an unreported direction stays unknown. These are token
+  counts, not monetary cost or cross-run billing totals.
+- Share the scheduler kernel across scheduled research and opt-in memory/Brazil
+  background jobs (#1893). The live-trading scheduler is unchanged. ZimaOS keeps
+  both scheduler and daily-sync flags off by default. Brazilian source failures
+  now reach the scheduler's existing retry budget instead of recording success.
+  The first daily sync waits for its configured slot; manual sync remains available.
+  Before downgrading to code without system-job support, remove `system:` rows
+  from the stored job file: older readers reject them and quarantine that file.
+- Combine generic trade-journal date/time columns before FIFO matching, including
+  Excel serial dates and time fractions (#1900). Complete datetime columns retain
+  precedence. Reject goal evidence artifacts outside their claimed run (#1895).
+- Resolve tied rolling extrema consistently across pandas and bottleneck (#1898),
+  and return an error envelope when options-payoff results overflow (#1897).
+- Honor `VIBE_TRADING_HOME` for persistent memory and its search index (#1896),
+  reject non-positive CLI list/search limits (#1886), keep trade-symbol choices
+  in code order (#1877), and deduplicate channel progress against visible statuses
+  rather than hidden tool hints (#1878).
+
+### Maintenance — 2026-10-16
+
+- Redact bare Groq/NVIDIA keys, Telegram bot tokens and Slack/Discord webhook
+  secrets from tool results and diagnostics (#1880). Follow-up coverage includes
+  Telegram ids outside the original eight-to-ten-digit assumption, GovSlack and
+  case-insensitive webhook hostnames; benign lookalikes remain unchanged.
+- Update the Windows desktop PyJWT pin to 2.15.1, matching the main lock and
+  including the fix for [GHSA-ffc3-869f-jxw9](https://github.com/jpadilla/pyjwt/security/advisories/GHSA-ffc3-869f-jxw9).
+  Artifact hashes are verified against PyPI; other Windows dependency pins stay unchanged.
+- Refresh opt-in local CSV, Parquet and DuckDB caches when source filesystem
+  revisions change, including DuckDB WAL changes and deletions (#1879). Reuse
+  bounded cache paths and reject mismatched metadata/payload pairs. Edits that
+  preserve all observed filesystem identity fields remain outside this check.
+- Split reversal fees between closed and newly opened quantities so FIFO PnL
+  counts each recorded fee once (#1891). Parse dot-grouped, comma-decimal journal
+  amounts correctly (#1881); ambiguous comma-only thousands retain their prior
+  interpretation. Emit strict JSON with null for unbounded ratios (#1884), and
+  avoid diagnosing disposition bias from zero holding times on both sides.
+- Reject false agreement against zero market-cap references or zero/negative
+  cross-source medians (#1883). Undefined percentage deviations are null.
+- Include completed zero-bar trades in average holding periods (#1876); retain
+  the existing bar-based measure behind the `avg_holding_days` compatibility key.
+  Infeasible minimum weights fall back to equal active magnitudes while keeping
+  signs and gross exposure (#1885). Count one flat peak/trough only once (#1882).
+- Serve Shadow Account reports from the configured runtime root used by the
+  report writer, restoring report links when `VIBE_TRADING_HOME` is set (#1887).
+
+### Maintenance — 2026-10-15
+
+- Separate live safety polling from model decisions (#1854): safety checks keep
+  their 60-second cadence, while decisions default to every 15 minutes and use
+  a fresh session. Per-broker daily budgets persist across restarts (26 decisions
+  and 1,000,000 reported tokens by default). Optional daily scheduling and
+  operator-priced USD estimates are configurable through Web, REST and CLI.
+  Usage is checked after a response, so one response can exceed a threshold;
+  estimates exclude auxiliary calls and are not a provider billing cap. Missing
+  usage or exhausted limits trigger the existing HALT path, including its
+  cancel/flatten behavior. Interrupted reservations require operator inspection.
+- Load bounded run previews and move blocking artifact reads off the async
+  event loop (#1853); preserve full trade history for display/export, defaulting
+  to newest first while retaining same-time fill order (#1865).
+- Preserve instrument identity in ticker-keyed evidence without mis-scoping
+  scalar contributions (#1851). Normalize percentage-point operands before
+  arithmetic, including ratios and compound factors; retain evidence and sign
+  validation (#1823).
+- Record declared backtests in strategy history with atomic measurement-based
+  deduplication; copied directories cannot satisfy decay-history sample
+  requirements, while different evaluation windows remain distinct (#1849).
+- Combine digit-leading crypto bases, separated USDC/BUSD quotes and perpetual
+  symbols in shared market classification, including signal alignment (#1861,
+  #1862, #1864). Emit swing signals only after confirmation (#1873), and compute
+  zero-target downside deviation over the complete return sample (#1875).
+- Correct fiat-pair classification and accounting-negative amounts in trade
+  journals (#1871, #1872). Deliver Telegram final replies when a preview was
+  unavailable (#1860), correlate CLI tool progress by call ID (#1859), and keep
+  saved skill names consistent with their front matter (#1858).
+- Expand private-key, cloud/platform-token and Cookie redaction, including
+  quoted Cookie values, while preserving public keys and idempotence (#1874).
+- Make session-based ReAct iteration limits configurable through
+  `VIBE_TRADING_AGENT_MAX_ITERATIONS`; the default remains 50 and values below
+  one are rejected (#1833). This does not disable progress or spending limits.
+
+### Maintenance — 2026-10-13
+
+- extraETF Investments imports now feed portfolio snapshots, with explicit row-count/freshness checks, EUR reference-rate valuation, preserved account/ISIN identity, and non-executing allocation proposals across Web, REST, CLI and the portfolio tool.
+
+- Standalone validation preserves saved parameters and seeds across walk-forward, Monte Carlo and permutation tests (#1815).
+- Custom OpenAI-compatible providers use tested credentials in the OS vault, canonical model settings and the `provider custom` CLI; existing channel settings remain available (#1264).
+- Pixel Office shares a transactional manual task board across Web, CLI and the agent tool. Assignment does not imply execution, and ranks grant no trading permissions (#1616).
+- mStock Type B reads expose separate holdings, net-position books and raw fund limits. Orders remain disabled; unmapped account values are excluded from portfolio aggregation (#1675).
+- Gildata adds bounded China macro, announcement and broker-report research plus OTC fund NAV reads. NAV evidence is scoped to that tool's declared fields. HK raw-price caliber and exact CN index identity are preserved (#1485).
+
+### Maintenance — 2026-10-12
+
+- Preserve the original opening fill after scale-ins (#1780), use the book
+  immediately before terminal liquidation for Brinson attribution (#1782),
+  and start drawdown duration at the latest visit to the peak (#1784).
+  Three-statement projections honor the caller's balance tolerance throughout
+  the model (#1786); existing balance checks remain enforced.
+- Add ten SEC fundamental factors and three A-share valuation factors
+  (`val:pb`, `val:ps_ttm`, `val:dv_ttm`) via Tushare daily_basic (#1787, #1788,
+  #1789). The registry now has 475 factors, 17 in the fundamental family.
+  Date-only SEC filings become usable one bar later on the IC path (#1790,
+  #1794). Prior IC measurements using same-day filings need to be rerun.
+  XOM keeps its current SEC identity while pre-reorganization filings extend
+  its history. Basic shares never substitute for missing diluted shares.
+  Price-times-diluted-shares ratios are valuation proxies, not reported market
+  capitalization. Missing input data remains missing.
+- Add Brazil `.SA`/BRL routing, an equity engine, local B3/CVM/BCB/Tesouro
+  ingestion and the `get_br_market_data` tool, plus market selection and
+  labels in all nine UI languages (#1783). COTAHIST bars remain raw;
+  CVM statements contain latest revisions, not point-in-time evidence.
+  ZimaOS Compose and a fork publishing template require explicit setup;
+  the upstream repository gains no automatic publishing schedule.
+- Forward active attempt status, tool hints and opt-in reasoning to IM
+  channels, including Feishu CardKit (#1792). Final answers still pass
+  grounding before delivery; draft text and tool-result payloads stay private.
+- Complete write-target helper extraction with actual loop delegation (#1791,
+  #1624), preserving runtime model provenance. Clarify that connector profiles,
+  not the legacy config.readonly field, govern order access (#1793).
+
+### Maintenance — 2026-10-11
+
+- Reject unsupported live options before broker dispatch (#1773). This is a
+  guard fix; live options execution is not enabled.
+- Require evidence for every data operand in derived figures (#1622).
+  Chosen multipliers/divisors need an explicit parameter declaration and
+  matching visible label; arithmetic checks remain enforced.
+- Keep explicit offline/source-bound benchmarks on their selected loader and
+  report unresolved benchmarks (#1781). Distinguish entry/exit events so
+  break-even closes remain in trade artifacts and downstream analysis (#1779).
+- Preserve optional Codex tool arguments with explicit non-strict schemas
+  (#1785).
+
+### Maintenance — 2026-10-10
+
+- Slack and Discord gain localized connection forms and read-only credential
+  probes (#1764, #1777). Slack verifies both bot identity and Socket Mode app
+  access; Discord requires a bot identity. HTTP 408/429 report temporary errors.
+  Failed probes leave saved settings unchanged. Discord admission policies
+  refresh without reconnecting.
+- Recover sessions and attempts with invalid UTF-8 metadata, and skip malformed
+  message records while preserving readable neighbors and original files (#1775).
+  Redact environment-style credentials and URL userinfo (#1765); generic trade
+  journals retain quantities and prices instead of being misclassified as Futu
+  exports (#1766).
+- Memory links recognize two-character identifiers (#1771). FTS recall expands
+  past stale index rows until enough current memories are found or the index is
+  exhausted (#1772).
+- Pin portfolio research to an immutable snapshot (#1769): the agent accepts
+  `snapshot_id`, the CLI supports `portfolio show --snapshot-id ID`, REST accepts
+  the same identifier, and Web exports the displayed sanitized research snapshot
+  as JSON. Unavailable or revoked snapshots never fall back to newer data.
+  Technical indicators accept an optional ISO `end_date` and report provenance
+  plus a fingerprint of their exact input bars (#1768).
+- Exclude top-level process exit codes and elapsed times from observed financial
+  evidence (#1767). Register existing figure/identity checks without changing
+  their predicates (#1691); extract compaction, tuning, usage accounting and
+  terminal outcome policy from the agent loop (#1631, #1678, #1662, #1641).
+- Expand the options connector evidence checklist (#1770). Update compatible
+  Python/frontend dependencies and pinned CI actions (#1692, #1668, #1667,
+  #1666, #1665); align Vitest with its coverage plugin. Keep `uuid-utils` at
+  0.17.0 because the proposed 1.0.0 upgrade (#1670) conflicts with the current
+  LangChain constraint. Preserve mootdx's retirement from the public canary.
+  BaoStock's bounded connection wrapper accepts the new 0.9.4 API-key argument
+  while retaining public/VIP routing and compatibility with 0.9.3.
 
 ### Maintenance — 2026-10-09
 

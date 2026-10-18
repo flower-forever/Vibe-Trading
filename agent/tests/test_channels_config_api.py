@@ -36,6 +36,9 @@ WS_TOKEN = "ws-token-secret-abcdefghij"
 WS_ISSUE_SECRET = "ws-issue-secret-987654321"
 FEISHU_APP_ID = "cli_feishu_app_id_1234567890"
 FEISHU_STORED_SECRET = "feishu-stored-secret-abcdefghij"
+SLACK_BOT_TOKEN = "xoxb-route-test-bot-token-123456"
+SLACK_APP_TOKEN = "xapp-route-test-app-token-abcdef"
+DISCORD_STORED_TOKEN = "discord-route-test-bot-token-123456"
 
 # Captured before any test monkeypatches httpx, so repeated injections in a
 # single test still wrap the real client (test_dingtalk_connection_test idiom).
@@ -160,6 +163,15 @@ def _feishu_section(**overrides: Any) -> dict[str, Any]:
         "enabled": False,
         "app_id": FEISHU_APP_ID,
         "app_secret": FEISHU_STORED_SECRET,
+    }
+    section.update(overrides)
+    return section
+
+
+def _discord_section(**overrides: Any) -> dict[str, Any]:
+    section: dict[str, Any] = {
+        "enabled": False,
+        "token": DISCORD_STORED_TOKEN,
     }
     section.update(overrides)
     return section
@@ -704,6 +716,37 @@ def test_put_feishu_enable_with_bad_credentials_is_blocked_before_write(
     assert path.read_bytes() == before
     assert api_server._channel_runtime is None
     assert FEISHU_STORED_SECRET not in response.text
+
+
+def test_put_discord_enable_with_bad_credentials_is_blocked_before_write(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Discord answers a bad bot token with HTTP 401 on ``users/@me``; the
+    enable-transition probe must block the write with 422."""
+    client, path = _client(
+        tmp_path, monkeypatch, channels={"discord": _discord_section()}
+    )
+    before = path.read_bytes()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(401, json={"message": "401: Unauthorized"})
+
+    requests = _inject_mock_transport(monkeypatch, handler)
+
+    response = client.put("/channels/config/discord", json={"config": {"enabled": True}})
+
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert detail["code"] == "invalid_credentials"
+    assert detail["fields"] == []
+    assert len(requests) == 1
+    assert str(requests[0].url) == "https://discord.com/api/v10/users/@me"
+    assert requests[0].method == "GET"
+    assert requests[0].headers["authorization"] == f"Bot {DISCORD_STORED_TOKEN}"
+    # The security property: bad credentials never reach disk.
+    assert path.read_bytes() == before
+    assert api_server._channel_runtime is None
+    assert DISCORD_STORED_TOKEN not in response.text
 
 
 def test_put_enable_rejection_carries_scrubbed_message(tmp_path: Path, monkeypatch) -> None:
@@ -1253,6 +1296,54 @@ def test_post_websocket_test_returns_probe_code_not_unsupported(
     assert body["tested_saved_config"] is True
     # The test endpoint never persists anything.
     assert path.read_bytes() == before
+
+
+def test_post_slack_test_runs_two_leg_probe_not_unsupported(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Slack's Test route runs the two-leg probe (auth.test then
+    apps.connections.open) instead of short-circuiting ``unsupported``."""
+    client, path = _client(tmp_path, monkeypatch, channels={})
+    before = path.read_bytes()
+    seen: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(str(request.url))
+        if seen[-1].endswith("/api/auth.test"):
+            return httpx.Response(200, json={"ok": True, "bot_id": "B12345"})
+        return httpx.Response(
+            200, json={"ok": True, "url": "wss://wss-primary.slack.com/link/"}
+        )
+
+    _inject_mock_transport(monkeypatch, handler)
+
+    response = client.post(
+        "/channels/slack/test",
+        json={
+            "config": {
+                "bot_token": SLACK_BOT_TOKEN,
+                "app_token": SLACK_APP_TOKEN,
+            }
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True, body
+    assert body["code"] == "ok"
+    assert body["code"] != "unsupported"
+    assert body["tested_saved_config"] is False
+    assert body["sdk_available"] is True
+    assert seen == [
+        "https://slack.com/api/auth.test",
+        "https://slack.com/api/apps.connections.open",
+    ]
+    # The test endpoint never persists anything, and neither the tokens nor
+    # the wss:// URL from the success body reach the response.
+    assert path.read_bytes() == before
+    assert SLACK_BOT_TOKEN not in response.text
+    assert SLACK_APP_TOKEN not in response.text
+    assert "wss://" not in response.text
 
 
 def test_post_email_test_empty_config_reports_missing_credentials(
