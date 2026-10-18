@@ -93,7 +93,7 @@ def render_shadow_report(
         **sections,
     )
     html_path = output_dir / f"{profile.shadow_id}.html"
-    html_path.write_text(html, encoding="utf-8")
+    html_path.write_text(html, encoding="utf-8", newline="\n")
 
     pdf_path, engine = _render_pdf(html, sections, charts, output_dir, profile.shadow_id)
 
