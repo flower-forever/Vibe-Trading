@@ -1,0 +1,56 @@
+name: Check official updates
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # 10:17 Asia/Shanghai; GitHub schedules may be delayed.
+  workflow_dispatch:
+    inputs:
+      rerun_ci:
+        description: Also rerun CI when the candidate already exists or main is current
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: official-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'flower-forever/Vibe-Trading'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Authenticate Git through the job token
+        run: gh auth setup-git --hostname github.com
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Prepare an integration PR and dispatch candidate CI
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SYNC_REPOSITORY: ${{ github.repository }}
+          RERUN_CI: ${{ inputs.rerun_ci || false }}
+        run: |
+          args=()
+          if [ "$RERUN_CI" = "true" ]; then args+=(--rerun-ci); fi
+          python tools/fork_sync.py --repository "$SYNC_REPOSITORY" \
+            --output "$RUNNER_TEMP/upstream-sync.json" \
+            --summary "$GITHUB_STEP_SUMMARY" "${args[@]}"
+      - name: Retain the sync result
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: upstream-sync-result
+          path: ${{ runner.temp }}/upstream-sync.json
+          retention-days: 30
