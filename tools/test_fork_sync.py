@@ -178,14 +178,16 @@ def test_full_sync_with_real_remote_keeps_main_and_dispatches_only_merged_tree(h
 
 def test_workflows_have_daily_and_manual_triggers_and_explicit_write_scopes():
     workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
-    # BaseLoader avoids YAML 1.1 interpreting the Actions `on` key as a boolean.
-    updater = yaml.load((workflows / "sync-upstream.yml").read_text(), Loader=yaml.BaseLoader)
-    ci = yaml.load((workflows / "fork-ci.yml").read_text(), Loader=yaml.BaseLoader)
-    assert updater["on"]["schedule"][0]["cron"] == "17 2 * * *"
-    assert "workflow_dispatch" in updater["on"]
+    updater = yaml.safe_load((workflows / "sync-upstream.yml").read_text())
+    ci = yaml.safe_load((workflows / "fork-ci.yml").read_text())
+    # PyYAML follows YAML 1.1: Actions' `on` key may become boolean True.
+    updater_events = updater.get("on", updater.get(True))
+    ci_events = ci.get("on", ci.get(True))
+    assert updater_events["schedule"][0]["cron"] == "17 2 * * *"
+    assert "workflow_dispatch" in updater_events
     assert updater["permissions"] == {"contents": "read"}
     assert updater["jobs"]["sync"]["permissions"] == {"contents": "write", "pull-requests": "write", "actions": "write"}
-    assert "workflow_dispatch" in ci["on"]
-    assert ci["on"]["pull_request"]["branches"] == ["main"]
+    assert "workflow_dispatch" in ci_events
+    assert ci_events["pull_request"]["branches"] == ["main"]
     assert ci["permissions"] == {"contents": "read"}
     assert {job["runs-on"] for job in ci["jobs"].values()} == {"ubuntu-latest", "windows-latest"}
