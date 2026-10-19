@@ -987,8 +987,16 @@ Vibe-Trading 是高度依赖工具的智能体：skills、backtests、memory 和
 | 档位 | 示例 | 使用场景 |
 |------|------|----------|
 | **Best** | `anthropic/claude-opus-4.7`, `anthropic/claude-sonnet-4.6`, `openai/gpt-5.5-pro`, `google/gemini-3.5-flash` | 复杂 swarms（3+ agents）、长研究 sessions、论文级分析 |
-| **Sweet spot**（默认） | `deepseek-v4-pro`, `deepseek/deepseek-v4-pro`, `x-ai/grok-4.20`, `z-ai/glm-5.1`, `moonshotai/kimi-k2.6`, `qwen/qwen3-max-thinking` | 日常主力，约 1/10 成本下具备可靠工具调用 |
+| **Sweet spot**（默认） | `deepseek-v4-pro`, `deepseek/deepseek-v4-pro`, `deepseek-flash` / `deepseek-v4.1-flash`, `x-ai/grok-4.20`, `z-ai/glm-5.1`, `moonshotai/kimi-k2.6`, `qwen/qwen3-max-thinking` | 日常主力，约 1/10 成本下具备可靠工具调用 |
 | **避免用于 agent** | `*-nano`, `*-flash-lite`, `*-coder-next`, 小型 / 蒸馏变体 | 工具调用不可靠，智能体会看起来像是在“凭记忆回答”，而不是加载 skills 或运行回测 |
+
+> **注意 —— `flash` 不等于 `flash-lite`。** 「避免」那一行列的是 `*-flash-lite`
+>（Gemini `*-flash-lite`、Qwen `-flash-lite`）——为压延迟而阉割过工具调用能力的特化版本。
+> 而 `deepseek-v4.1-flash` / `deepseek-flash` 这种普通 `flash` 档位**不属于这一类**：
+> 它是完整的小模型，DeepSeek 官方称其在 agentic benchmark 上已超过 V4 Pro。
+> 被劝退的只有带 `lite` / `nano` 后缀的蒸馏变体。
+>
+> 另外请注意：**这张表只是文档，没有任何代码逻辑会去检查模型名并据此改变行为。**
 
 默认 `agent/.env.example` 使用 OpenRouter + `deepseek/deepseek-v4-pro`；使用 DeepSeek 官方 API 时，请选择 `LANGCHAIN_PROVIDER=deepseek` 和 `deepseek-v4-pro`。
 

@@ -580,7 +580,19 @@ if ChatOpenAI is not None:
                 if isinstance(tool_call, dict):
                     tool_call.pop("extra_content", None)
 
+        def _unwrap_cline_response(self, response: Any) -> Any:
+            """Accept Cline's observed data envelope as well as standard responses."""
+            base_url = str(self.openai_api_base or "")
+            if urlparse(base_url).hostname != "api.cline.bot":
+                return response
+            raw = response if isinstance(response, dict) else response.model_dump()
+            data = raw.get("data")
+            if not raw.get("choices") and isinstance(data, dict) and "choices" in data:
+                return data
+            return response
+
         def _create_chat_result(self, response, generation_info=None):  # type: ignore[override]
+            response = self._unwrap_cline_response(response)
             result = super()._create_chat_result(response, generation_info)
             raw = response if isinstance(response, dict) else response.model_dump()
             for gen, choice in zip(result.generations, raw["choices"]):
@@ -768,6 +780,7 @@ if ChatOpenAI is not None:
             default_chunk_class: type,
             base_generation_info: Optional[dict],
         ):
+            chunk = self._unwrap_cline_response(chunk)
             gen = super()._convert_chunk_to_generation_chunk(
                 chunk, default_chunk_class, base_generation_info
             )

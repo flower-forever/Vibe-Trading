@@ -48,9 +48,9 @@ _UA = "trading212-research/1.0 (contact: set TSR_CONTACT_EMAIL)"
 
 def _contact() -> str:
     """Return a SEC-compliant User-Agent, honouring TSR_CONTACT_EMAIL."""
-    import os
+    from src.config.accessor import get_env_value
 
-    email = (os.environ.get("TSR_CONTACT_EMAIL") or "").strip()
+    email = get_env_value("TSR_CONTACT_EMAIL").strip()
     return f"trading212-research/1.0 (research contact: {email or 'unset@example.com'})"
 
 

@@ -1228,8 +1228,16 @@ Vibe-Trading is a tool-heavy agent — skills, backtests, memory, and swarms all
 | Tier | Examples | When to use |
 |------|----------|-------------|
 | **Best** | `anthropic/claude-opus-4.7`, `anthropic/claude-sonnet-4.6`, `openai/gpt-5.5-pro`, `google/gemini-3.5-flash` | Complex swarms (3+ agents), long research sessions, paper-grade analysis |
-| **Sweet spot** (default) | `deepseek-v4-pro`, `deepseek/deepseek-v4-pro`, `x-ai/grok-4.20`, `z-ai/glm-5.1`, `moonshotai/kimi-k2.6`, `qwen/qwen3-max-thinking` | Daily driver — reliable tool-calling at ~1/10 the cost |
+| **Sweet spot** (default) | `deepseek-v4-pro`, `deepseek/deepseek-v4-pro`, `deepseek-flash` / `deepseek-v4.1-flash`, `x-ai/grok-4.20`, `z-ai/glm-5.1`, `moonshotai/kimi-k2.6`, `qwen/qwen3-max-thinking` | Daily driver — reliable tool-calling at ~1/10 the cost |
 | **Avoid for agent use** | `*-nano`, `*-flash-lite`, `*-coder-next`, small / distilled variants | Tool-calling is unreliable — the agent will appear to "answer from memory" instead of loading skills or running backtests |
+
+> **Note — `flash` is not `flash-lite`.** The Avoid row lists `*-flash-lite` (Gemini
+> `*-flash-lite`, Qwen `-flash-lite`): deliberately gutted latency-first variants with
+> degraded tool calling. A plain `flash` tier such as `deepseek-v4.1-flash` /
+> `deepseek-flash` is **not** in that category — it is a full small model, and DeepSeek
+> reports it ahead of V4 Pro on agentic benchmarks. Only the `lite`/`nano`-suffixed
+> distills are discouraged here. Note also that this table is documentation only: no
+> code path inspects the model name to gate behaviour.
 
 The default `agent/.env.example` uses OpenRouter + `deepseek/deepseek-v4-pro`; for the DeepSeek official API, select `LANGCHAIN_PROVIDER=deepseek` and `deepseek-v4-pro`.
 
