@@ -27,7 +27,7 @@
 
 机器人使用每次任务自动获得的 `GITHUB_TOKEN`，只给同步任务写分支、创建 PR 和启动 Actions 的权限，测试任务只有读取权限。创建 PR 后显式调用 `workflow_dispatch`，避免依赖机器人事件的递归触发行为。参见 [GitHub 官方触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
 
-本次保留已有工作流的开关及仓库权限，因此继承的上游 CI 和新检查可能同时运行。当前仓库未允许机器人创建 PR，自动流程会使用上述创建链接；若日后在仓库 Settings → Actions → General 中允许 GitHub Actions 创建 PR，流程会自动使用该能力。
+本次保留已有工作流的开关，因此继承的上游 CI 和新检查可能同时运行。已按用户授权开启 GitHub Actions 创建 PR 的设置，仓库默认令牌权限仍为只读；同步任务会自动创建更新 PR，最终合并由用户确认。如果平台另有限制，流程仍会提供手动创建链接。
 
 保留的工作流还包括：`wiki-deploy.yml` 会在 Wiki / 因子文件变更时尝试 Cloudflare 部署；`loader-health.yml` 每周访问公开行情源；原 CI、桌面及 Docker 构建会按各自触发条件运行。本 fork 当前没有配置发布密钥，这些额外流程仍可能耗时或显示失败。
 
