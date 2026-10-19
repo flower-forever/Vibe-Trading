@@ -77,7 +77,14 @@ def open_pr(api: GitHub, repository: str, base: str, branch: str, result: dict, 
     conflict_text = "\n".join("- " + json.dumps(name, ensure_ascii=False) for name in result["conflicts"])
     detail = ("Merge conflicts require manual resolution. CI is not run against the unmerged upstream tree.\n\n" + conflict_text) if result["state"] == "conflicts" else "The candidate merges official upstream with our current main. Fork CI is explicitly dispatched on this candidate branch. Review its checks before merging."
     body = f"<!-- managed-upstream-sync -->\nOfficial repository: {OFFICIAL}\nOfficial commit: `{upstream}`\nFork base: `{base}`\n\n{detail}\n\nThis automation never force-pushes main, overwrites existing candidate branches, or auto-merges. API keys and local runtime data are not needed."
-    pr = api.api(f"repos/{repository}/pulls", method="POST", body={"base": base, "head": branch, "title": f"{'[conflicts]' if result['state'] == 'conflicts' else '[upstream]'} Sync official main {upstream[:12]}", "body": body, "draft": result["state"] == "conflicts"})
+    try:
+        pr = api.api(f"repos/{repository}/pulls", method="POST", body={"base": base, "head": branch, "title": f"{'[conflicts]' if result['state'] == 'conflicts' else '[upstream]'} Sync official main {upstream[:12]}", "body": body, "draft": result["state"] == "conflicts"})
+    except RuntimeError as exc:
+        if "not permitted to create or approve pull requests" not in str(exc):
+            raise
+        # Some forks forbid bot PR creation. Keep the candidate and its CI;
+        # provide GitHub's compare page without changing repository settings.
+        return {"url": f"https://github.com/{repository}/compare/{base}...{branch}?expand=1", "created": False, "manual_creation_required": True}
     return {"url": pr["html_url"], "number": pr["number"], "created": True}
 
 

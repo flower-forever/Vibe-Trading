@@ -7,8 +7,8 @@
 打开 [Check official updates](https://github.com/flower-forever/Vibe-Trading/actions/workflows/sync-upstream.yml)，点击 **Run workflow**，使用 `main`。也会每天在北京时间 10:17 左右自动检查；GitHub 的定时执行可能延迟。
 
 - 官方提交已经包含在我们的 `main` 中：记录“已是最新”，不重复测试。
-- 有更新且可合并：创建独立分支和 PR，明确启动该分支的 **Fork verification**。
-- 有冲突：创建草稿 PR，列出冲突文件，本次检查显示失败。解决冲突后将提交推入候选分支，再手动运行检查并勾选 `rerun_ci`。
+- 有更新且可合并：创建独立分支，明确启动该分支的 **Fork verification**，并尝试创建 PR。仓库禁止机器人创建 PR 时，报告提供手动创建 PR 的链接，测试照常运行。
+- 有冲突：列出冲突文件，本次检查显示失败；允许机器人开 PR 时创建草稿 PR，否则提供创建链接。解决冲突后将提交推入候选分支，再手动运行检查并勾选 `rerun_ci`。
 - 候选分支已存在：保留人工修复；若该提交缺少显式启动的 CI，会补启动一次。已有失败结果每天不会自动重跑。需要重跑时勾选 `rerun_ci`。
 
 检查结果在 PR 和 Actions 页面查看。确认后在 GitHub 点击合并；流程不会自动合并或强制推送。每一对“我们的基准提交 + 官方提交”使用独立分支，因此官方继续更新时可能出现多个候选 PR，保留最新、关闭旧 PR 即可。
@@ -27,7 +27,7 @@
 
 机器人使用每次任务自动获得的 `GITHUB_TOKEN`，只给同步任务写分支、创建 PR 和启动 Actions 的权限，测试任务只有读取权限。创建 PR 后显式调用 `workflow_dispatch`，避免依赖机器人事件的递归触发行为。参见 [GitHub 官方触发规则](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)。
 
-本 fork 关闭继承的重复 CI、桌面发布、Docker 发布、Wiki 部署和线上数据源定时探测，保留源码中的上游工作流文件，便于后续合并。这些开关只作用于本 fork。
+本次保留已有工作流的开关及仓库权限，因此继承的上游 CI 和新检查可能同时运行。当前仓库未允许机器人创建 PR，自动流程会使用上述创建链接；若日后在仓库 Settings → Actions → General 中允许 GitHub Actions 创建 PR，流程会自动使用该能力。
 
 ## 将已确认的版本拉回本机
 

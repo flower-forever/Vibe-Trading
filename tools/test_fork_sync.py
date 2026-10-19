@@ -106,6 +106,18 @@ def test_reuses_existing_pr_without_overwriting_it():
     assert len(api.calls) == 1
 
 
+def test_disabled_bot_pr_creation_keeps_candidate_available():
+    class RestrictedAPI(FakeAPI):
+        def api(self, path, *, method="GET", body=None):
+            if method == "POST":
+                raise RuntimeError("GitHub Actions is not permitted to create or approve pull requests. (HTTP 403)")
+            return []
+    api = RestrictedAPI([])
+    pr = sync.open_pr(api, sync.DESTINATION, "main", "automation/upstream-test", {"state": "ready", "conflicts": []}, "a" * 40)
+    assert pr["manual_creation_required"] is True
+    assert "/compare/main...automation/upstream-test" in pr["url"]
+
+
 def test_ci_lookup_distinguishes_missing_dispatch_and_failed_completed_run():
     api = FakeAPI([{"workflow_runs": []}, {"workflow_runs": [{"conclusion": "failure"}]}])
     assert not sync.has_dispatched_ci(api, sync.DESTINATION, "automation/upstream-test", "b" * 40)
