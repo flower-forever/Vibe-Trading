@@ -126,6 +126,56 @@ def test_ci_lookup_distinguishes_missing_dispatch_and_failed_completed_run():
     assert "head_sha=" + "b" * 40 in api.calls[0][0]
 
 
+@pytest.mark.parametrize("conflict", [False, True])
+def test_full_sync_with_real_remote_keeps_main_and_dispatches_only_merged_tree(history, tmp_path_factory, monkeypatch, conflict):
+    root, commit = history
+    base = commit("main", "shared.txt" if conflict else "ours.txt", "our customization\n")
+    official = commit("official", "shared.txt" if conflict else "upstream.txt", "official edit\n")
+    remote = tmp_path_factory.mktemp("bare-origin")
+    sync.git(root, "clone", "--bare", str(root), str(remote))
+    sync.git(root, "remote", "add", "origin", str(remote))
+    real_git = sync.git
+
+    def local_only_git(root, *args, **kwargs):
+        if args[:3] == ("fetch", "--no-tags", f"https://github.com/{sync.OFFICIAL}.git"):
+            args = ("fetch", "--no-tags", "origin", "+refs/heads/official:refs/remotes/official/main")
+        return real_git(root, *args, **kwargs)
+
+    class RepositoryAPI:
+        def __init__(self):
+            self.dispatches = []
+
+        def api(self, path, *, method="GET", body=None):
+            if path == f"repos/{sync.DESTINATION}":
+                return {"parent": {"full_name": sync.OFFICIAL}, "default_branch": "main"}
+            if method == "POST" and path.endswith("/pulls"):
+                raise RuntimeError("GitHub Actions is not permitted to create or approve pull requests. (HTTP 403)")
+            if "/pulls?" in path:
+                return []
+            if "/runs?" in path:
+                return {"workflow_runs": []}
+            if path.endswith("/dispatches"):
+                self.dispatches.append(body)
+                return None
+            raise AssertionError((path, method, body))
+
+    api = RepositoryAPI()
+    monkeypatch.setattr(sync, "GitHub", lambda _: api)
+    monkeypatch.setattr(sync, "git", local_only_git)
+    result = sync.synchronize(root, sync.DESTINATION)
+    assert result["state"] == ("conflicts" if conflict else "ready")
+    assert result["pull_request"]["manual_creation_required"] is True
+    assert result["ci_dispatched"] is (not conflict)
+    assert api.dispatches == ([] if conflict else [{"ref": result["branch"]}])
+    assert real_git(root, "--git-dir", str(remote), "rev-parse", "main").stdout.strip() == base
+    candidate = real_git(root, "--git-dir", str(remote), "rev-parse", result["branch"]).stdout.strip()
+    assert candidate == result["head_sha"]
+    assert sync.ancestor(root, official, candidate)
+    if not conflict:
+        assert sync.ancestor(root, base, candidate)
+        assert (root / "ours.txt").read_text() == "our customization\n"
+
+
 def test_workflows_have_daily_and_manual_triggers_and_explicit_write_scopes():
     workflows = Path(__file__).resolve().parents[1] / ".github/workflows"
     # BaseLoader avoids YAML 1.1 interpreting the Actions `on` key as a boolean.
