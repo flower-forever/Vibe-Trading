@@ -29,6 +29,8 @@
 
 本次保留已有工作流的开关及仓库权限，因此继承的上游 CI 和新检查可能同时运行。当前仓库未允许机器人创建 PR，自动流程会使用上述创建链接；若日后在仓库 Settings → Actions → General 中允许 GitHub Actions 创建 PR，流程会自动使用该能力。
 
+保留的工作流还包括：`wiki-deploy.yml` 会在 Wiki / 因子文件变更时尝试 Cloudflare 部署；`loader-health.yml` 每周访问公开行情源；原 CI、桌面及 Docker 构建会按各自触发条件运行。本 fork 当前没有配置发布密钥，这些额外流程仍可能耗时或显示失败。
+
 ## 将已确认的版本拉回本机
 
 先提交或暂存本机新增修改，再在 Vibe-Trading 仓库执行：
