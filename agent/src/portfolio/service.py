@@ -45,9 +45,30 @@ _RISK_XRAY_MAX_SYMBOLS = 50
 # Version 3 makes all valuation use an explicit FX rates map. Existing v2
 # snapshots/history are intentionally hidden after upgrade, including
 # USD/HKD/CNY snapshots whose numeric values would otherwise remain valid.
-PORTFOLIO_VALUATION_VERSION = 3
+# Version 4 rebuilds persisted holdings after market-prefix normalization;
+# old snapshots may have split one instrument into separate broker holdings.
+PORTFOLIO_VALUATION_VERSION = 4
 _LOADER_MARKET_SUFFIXES = frozenset({"US", "HK", "SZ", "SH", "BJ", "KS", "KQ", "NS", "BO", "TO", "V"})
 _NON_EQUITY_ASSET_TYPES = frozenset({"crypto", "stablecoin", "cash"})
+# Futu reports codes market-first (``HK.00700``, ``US.AAPL``); the rest of the
+# portfolio layer and the loaders use the suffix form (``00700.HK``).
+_PREFIX_MARKETS = ("US", "HK", "SH", "SZ", "BJ")
+
+
+def _suffix_form(symbol: str) -> str:
+    """Rewrite a market-prefixed code (``HK.00700``) to suffix form (``00700.HK``).
+
+    Args:
+        symbol: Upper-cased connector symbol.
+
+    Returns:
+        The suffix-form symbol, or ``symbol`` unchanged when it carries no
+        market prefix.
+    """
+    prefix, dot, code = symbol.partition(".")
+    if dot and prefix in _PREFIX_MARKETS and code:
+        return f"{code}.{prefix}"
+    return symbol
 
 
 _AUTH_REQUIRED_MARKERS = (
@@ -753,7 +774,7 @@ class PortfolioService:
         """
         if position.get("instrument_id_kind") or position.get("source_kind") == "extraetf":
             return None  # An ISIN or exported pair is not an observed listing/venue.
-        symbol = str(position.get("symbol") or "").strip().upper()
+        symbol = _suffix_form(str(position.get("symbol") or "").strip().upper())
         if not symbol:
             return None
         head, _, suffix = symbol.rpartition(".")
@@ -820,7 +841,7 @@ class PortfolioService:
         """
         grouped: dict[str, dict[str, Any]] = {}
         for row in positions:
-            symbol = str(row.get("symbol") or "").upper()
+            symbol = _suffix_form(str(row.get("symbol") or "").strip().upper())
             currency = str(row.get("currency") or "").upper()
             market = str(row.get("market") or "").upper()
             if symbol.endswith(".US"):

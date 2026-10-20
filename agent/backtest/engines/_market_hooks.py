@@ -612,7 +612,11 @@ _SWAP_SHORT: dict[str, float] = {
 
 def _normalize_symbol(symbol: str) -> str:
     """Normalize forex symbol to 'XXX/YYY' format."""
-    s = symbol.replace(".FX", "").replace(".", "").strip()
+    s = symbol.strip().upper().removesuffix(".FX").replace(".", "")
+    # Yahoo's forex notation (EURUSD=X) routes here too; without dropping the
+    # suffix the pair misses the spread and swap tables and gets the defaults.
+    if s.upper().endswith("=X"):
+        s = s[:-2]
     if "/" in s:
         return s.upper()
     if len(s) == 6:

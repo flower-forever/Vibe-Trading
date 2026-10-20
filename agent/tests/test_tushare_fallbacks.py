@@ -118,3 +118,12 @@ def test_margin_trading_maps_and_sorts_most_recent_first() -> None:
     assert data["rows"][0]["trade_date"] == "2024-01-03"
     assert data["rows"][0]["financing_balance"] == 7.0
     assert data["rows"][1]["margin_total_balance"] == 6.0
+
+
+def test_ts_code_routes_beijing_920_codes_to_bj() -> None:
+    assert tf._ts_code("920002") == "920002.BJ"
+    assert tf._ts_code("830799") == "830799.BJ"
+    assert tf._ts_code("430047") == "430047.BJ"
+    assert tf._ts_code("900901") == "900901.SH"
+    assert tf._ts_code("600519") == "600519.SH"
+    assert tf._ts_code("000001") == "000001.SZ"

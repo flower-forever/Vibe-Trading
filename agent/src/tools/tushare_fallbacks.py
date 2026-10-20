@@ -99,12 +99,12 @@ def _ts_code(code: str) -> str:
             break
     if len(token) != 6 or not token.isdigit():
         raise TushareFallbackUnavailable(f"unsupported Tushare symbol: {code}")
-    if token.startswith(("5", "6", "9")):
+    if token.startswith(("4", "8", "920")):
+        suffix = "BJ"
+    elif token.startswith(("5", "6", "9")):
         suffix = "SH"
     elif token.startswith(("0", "2", "3")):
         suffix = "SZ"
-    elif token.startswith(("4", "8")):
-        suffix = "BJ"
     else:
         raise TushareFallbackUnavailable(f"unsupported Tushare symbol: {code}")
     return f"{token}.{suffix}"
