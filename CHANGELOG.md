@@ -7,6 +7,31 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Maintenance — 2026-10-19
+
+- Weight the newest observation most heavily in `decay_linear`, retaining
+  causal windows and missing-data masks; update the affected synthetic GTJA
+  regression fixture (#1912).
+- Apply ordinary ChiNext/STAR limits to 301/689 codes and Beijing limits to
+  920 and historical 4/8 codes; resolve Beijing symbols correctly in Eastmoney
+  search and Tushare fallbacks (#1913, #1914). Listing-day exemptions and ST
+  status still require information beyond a stock code.
+- Derive SEC Q4 values only for currency flows with matching units, never
+  weighted-average shares, EPS or dimensionless ratios (#1917).
+- Keep event-study fitting data before both the event and its measured window,
+  including post-event windows and a zero estimation gap (#1920).
+- Normalize Futu market-prefixed holdings for risk analysis and cross-broker
+  aggregation, preserving share classes. Invalidate older portfolio snapshots
+  so the next refresh rebuilds holdings under the corrected contract (#1922).
+- Preserve at least four significant digits for nonzero MACD/Bollinger values,
+  including tiny components beside larger values; retain ordinary-price
+  rounding (#1925).
+- Reject materially negative specific variances; retain the existing covariance
+  tolerance of 1e-8 for rounding noise and non-finite input rejection (#1928).
+- Normalize Yahoo `=X` and case-insensitive `.FX` aliases before looking up
+  configured forex spreads and overnight swaps (#1930). Rate assumptions are
+  unchanged; these are not live broker quotes.
+
 ### Maintenance — 2026-10-18
 
 - Preserve explicit zero financial-rigor parameters and hypothesis backtest
