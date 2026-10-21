@@ -520,6 +520,46 @@ def write_validation_json(path: Path, results: Dict[str, Any]) -> Dict[str, Any]
     return safe_results
 
 
+def _saved_bars_per_year(config: Dict[str, Any], equity: pd.Series, run_dir: Path) -> int | None:
+    """Annualisation factor for a saved run, chosen the way the runner chose it.
+
+    The engine passes the run's ``bars_per_year`` into :func:`run_validation`;
+    Prefer the factor recorded by the runner after checking the served bars.
+    For legacy cards, apply the runner's spacing check to the saved equity
+    index. This is a reconstruction: the original per-symbol price indexes
+    are not available. A config without codes keeps the historical default.
+
+    Args:
+        config: The saved run config.
+        equity: Saved equity observations for the legacy spacing fallback.
+        run_dir: Directory containing the optional run card.
+
+    Returns:
+        Bars per year, or ``None`` for calendar-day annualisation.
+    """
+    card_path = run_dir / "run_card.json"
+    if card_path.exists():
+        card = json.loads(card_path.read_text(encoding="utf-8"))
+        if "annualisation" in card:
+            value = card["annualisation"]["bars_per_year"]
+            if value is None:
+                return None
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise ValueError("run-card bars_per_year must be a positive integer or null")
+            return value
+    codes = [code for code in config.get("codes") or [] if isinstance(code, str) and code]
+    if not codes:
+        return 252
+    from backtest.runner import _annualisation_bars, _detect_market, _detect_primary_source
+
+    if len({_detect_market(code) for code in codes}) > 1:
+        return None
+    source = _detect_primary_source(codes, config.get("source", "tushare"))
+    return _annualisation_bars(
+        config.get("interval", "1D"), source, {"equity": equity.to_frame()}, ["equity"]
+    )
+
+
 def main(run_dir: Path) -> Dict[str, Any]:
     """Run all three validations on existing backtest artifacts.
 
@@ -549,7 +589,10 @@ def main(run_dir: Path) -> Dict[str, Any]:
     saved_settings = config.get("validation")
     if isinstance(saved_settings, dict):
         settings.update(saved_settings)
-    results = run_validation({"validation": settings}, equity, trades, initial_capital)
+    results = run_validation(
+        {"validation": settings}, equity, trades, initial_capital,
+        _saved_bars_per_year(config, equity, run_dir),
+    )
 
     out = run_dir / "artifacts" / "validation.json"
     safe_results = write_validation_json(out, results)

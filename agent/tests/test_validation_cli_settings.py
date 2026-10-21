@@ -122,3 +122,67 @@ def test_invalid_saved_settings_use_existing_errors(
 
     assert message in actual[tool]["error"]
     capsys.readouterr()
+
+
+@pytest.mark.parametrize(
+    "run_config, annualisation",
+    [
+        ({"source": "okx", "interval": "1H", "codes": ["BTC-USDT"]}, "interval"),
+        ({"source": "tushare", "interval": "1D", "codes": ["000001.SZ"]}, "interval"),
+        ({"source": "auto", "interval": "1D", "codes": ["000001.SZ", "BTC-USDT"]}, "calendar"),
+    ],
+)
+def test_main_annualises_like_the_saved_run(tmp_path: Path, capsys, run_config, annualisation) -> None:
+    from backtest.metrics import calc_bars_per_year
+
+    settings = {
+        "monte_carlo": {"n_simulations": 5, "seed": 1},
+        "bootstrap": {"n_bootstrap": 5, "seed": 2},
+        "walk_forward": {"n_windows": 2},
+    }
+    config = {"initial_cash": 1000, "validation": settings, **run_config}
+    _write_run(tmp_path, config)
+    if run_config["interval"] == "1H":
+        equity = pd.read_csv(tmp_path / "artifacts/equity.csv", index_col=0)
+        equity.index = pd.date_range("2026-01-01", periods=len(equity), freq="h")
+        equity.to_csv(tmp_path / "artifacts/equity.csv")
+    if annualisation == "calendar":
+        bars = None
+    else:
+        bars = calc_bars_per_year(run_config["interval"], run_config["source"])
+
+    actual = validation.main(tmp_path)
+    capsys.readouterr()
+
+    expected = validation.run_validation(
+        config, validation._load_equity(tmp_path), validation._load_trades(tmp_path), 1000, bars
+    )
+    assert actual["bootstrap"]["observed_sharpe"] == expected["bootstrap"]["observed_sharpe"]
+    assert actual == expected
+
+
+@pytest.mark.parametrize("factor", [52, 365, None])
+def test_recorded_annualisation_round_trips(tmp_path: Path, factor) -> None:
+    from backtest.run_card import write_run_card
+
+    config = {"codes": ["BTC-USDT"], "source": "okx", "interval": "1H"}
+    _write_run(tmp_path, config)
+    write_run_card(tmp_path, {**config, "_run_card_bars_per_year": factor}, {})
+    assert validation._saved_bars_per_year(
+        config, validation._load_equity(tmp_path), tmp_path
+    ) == factor
+
+
+def test_legacy_daily_bars_override_hourly_declaration(tmp_path: Path) -> None:
+    config = {"codes": ["BTC-USDT"], "source": "okx", "interval": "1H"}
+    _write_run(tmp_path, config)
+    assert validation._saved_bars_per_year(
+        config, validation._load_equity(tmp_path), tmp_path
+    ) == 365
+
+
+@pytest.mark.parametrize("factor", [0, -1, True, "365", float("nan")])
+def test_invalid_recorded_factor_is_not_silently_replaced(tmp_path: Path, factor) -> None:
+    (tmp_path / "run_card.json").write_text(json.dumps({"annualisation": {"bars_per_year": factor}}))
+    with pytest.raises(ValueError, match="bars_per_year"):
+        validation._saved_bars_per_year({}, pd.Series(dtype=float), tmp_path)

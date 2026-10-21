@@ -32,6 +32,9 @@ filing dates and require the S&P 500 universe. Results report observed coverage,
 missing symbols and current-constituent survivorship bias. A first large-universe
 download can take minutes; later evaluations reuse the existing panel cache.
 
+Factor benchmarks skip alphas with fewer than two IC observations and report
+the reason. They do not rank an unestimable sample standard deviation as zero.
+
 Analysis drafts and completed results survive navigation and reload in the same
 browser tab. Factor progress reports data loading separately from computation;
 Reconnect resumes the existing job or repeats its identical request ID. Running
@@ -49,6 +52,11 @@ recovery actions; inspect symbol, venue, date range, interval, credentials and
 optional dependencies before retrying. Explicit-only sources retain their
 existing currency and fallback boundaries. Missing observations are never
 replaced with invented prices or financial fields.
+
+Standalone revalidation reuses the annualisation factor saved in the run card,
+including the runner's corrections for actual bar spacing. For older cards
+without that field, it reconstructs the factor from the saved configuration and
+equity timestamps; the original per-symbol price indexes are not available.
 
 For AI-assisted or automation-assisted contributions, also see
 [`AGENT_CONTRIBUTOR_GUIDE.md`](AGENT_CONTRIBUTOR_GUIDE.md). It summarizes safe

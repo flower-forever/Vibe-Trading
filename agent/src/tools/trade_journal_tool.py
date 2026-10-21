@@ -608,6 +608,10 @@ def _apply_filter(df: pd.DataFrame, expr: str) -> pd.DataFrame:
 
     Returns:
         Filtered DataFrame (may be empty).
+
+    Raises:
+        ValueError: For an inverted date range, a field that is not a journal
+            column, or an expression in none of the supported forms.
     """
     expr = expr.strip()
     if not expr:
@@ -641,7 +645,12 @@ def _apply_filter(df: pd.DataFrame, expr: str) -> pd.DataFrame:
         key, val = (p.strip() for p in expr.split("=", 1))
         if key in df.columns:
             return df[df[key].astype(str).str.upper() == val.upper()]
-    return df
+        raise ValueError(f"unsupported filter field {key!r}; use symbol= or market=")
+    # Returning the full journal here would report an unapplied filter as applied.
+    raise ValueError(
+        f"unsupported filter {expr!r}; use 'YYYY-MM[-DD] to YYYY-MM[-DD]', "
+        "'symbol=...' or 'market=...'"
+    )
 
 
 def _json_safe(value: Any) -> Any:
@@ -660,6 +669,9 @@ def _json_safe(value: Any) -> Any:
     return value
 
 
+_ANALYSIS_TYPES = frozenset({"full", "profile", "behavior", "strategy"})
+
+
 def analyze_trade_journal(file_path: str, analysis_type: str = "full", filter_expr: str = "") -> str:
     """Parse a trade journal and return a JSON analysis.
 
@@ -675,6 +687,17 @@ def analyze_trade_journal(file_path: str, analysis_type: str = "full", filter_ex
         JSON string. Keys: status, file, format_detected, total_records,
         date_range, market, profile / behavior (when applicable).
     """
+    if not isinstance(analysis_type, str) or analysis_type not in _ANALYSIS_TYPES:
+        return json.dumps(
+            {
+                "status": "error",
+                "error": (
+                    f"Unknown analysis_type {analysis_type!r}. "
+                    f"Expected one of: {', '.join(sorted(_ANALYSIS_TYPES))}"
+                ),
+            },
+            ensure_ascii=False,
+        )
     try:
         path = safe_user_path(file_path)
     except ValueError as exc:
@@ -698,6 +721,14 @@ def analyze_trade_journal(file_path: str, analysis_type: str = "full", filter_ex
         )
 
     df = records_to_dataframe(records)
+    if df["datetime"].isna().any():
+        return json.dumps(
+            {"status": "error", "error": (
+                "Trade journal contains missing or invalid dates. "
+                "Correct the datetime/date values before analysis."
+            )},
+            ensure_ascii=False,
+        )
     try:
         filtered = _apply_filter(df, filter_expr)
     except ValueError as exc:
@@ -782,6 +813,6 @@ class TradeJournalTool(BaseTool):
     def execute(self, **kwargs: Any) -> str:
         return analyze_trade_journal(
             file_path=kwargs["file_path"],
-            analysis_type=kwargs.get("analysis_type", "full"),
+            analysis_type=kwargs.get("analysis_type") or "full",
             filter_expr=kwargs.get("filter_expr", ""),
         )
