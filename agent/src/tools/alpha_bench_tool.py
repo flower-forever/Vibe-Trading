@@ -993,9 +993,9 @@ def _bench_one_alpha(
 
     factor_df = registry.compute(alpha_id, panel)
     ic_series = compute_ic_series(factor_df, return_df)
-    if ic_series.empty:
+    if len(ic_series) < 2:
         raise RuntimeError(
-            f"{alpha_id}: IC series empty — insufficient overlap between factor and returns"
+            f"{alpha_id}: insufficient IC observations (need at least 2)"
         )
     ic_mean = float(ic_series.mean())
     ic_std = float(ic_series.std())
@@ -1269,9 +1269,18 @@ def run_alpha_bench(**kwargs: Any) -> dict[str, Any]:
     except ValueError as exc:
         return {"status": "error", "error": str(exc)}
 
-    top_n = int(kwargs.get("top", 20) or 20)
-    if top_n <= 0:
-        return {"status": "error", "error": "top must be > 0"}
+    top_raw = kwargs.get("top")
+    if top_raw is None:
+        top_n = 20
+    else:
+        try:
+            if isinstance(top_raw, bool) or (isinstance(top_raw, float) and not top_raw.is_integer()):
+                raise ValueError
+            top_n = int(top_raw)
+        except (TypeError, ValueError, OverflowError):
+            return {"status": "error", "error": "top must be an integer > 0"}
+        if top_n <= 0:
+            return {"status": "error", "error": "top must be > 0"}
 
     try:
         horizon = _validate_horizon(kwargs.get("horizon", 1))
