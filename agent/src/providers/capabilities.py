@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from functools import lru_cache
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -335,7 +335,15 @@ def get_provider_capabilities(
     if normalized == "openai-codex":
         return _PROVIDERS["openai-codex"]
     if normalized and normalized != "openai":
-        return _PROVIDERS.get(normalized, _PROVIDERS["openai"])
+        caps = _PROVIDERS.get(normalized, _PROVIDERS["openai"])
+        # A live Go request on 2026-10-04 accepted DeepSeek V4.1 Flash with
+        # top-level reasoning_effort=xhigh. Other Go models keep their existing
+        # parameter contract; only DeepSeek models opt into this field.
+        if normalized in {"opencode", "opencode-go", "opencode-zen"} and (
+            (model or "").split("/")[-1].lower().startswith("deepseek")
+        ):
+            return replace(caps, capture_reasoning=True, top_level_reasoning_effort=True)
+        return caps
     inferred = _infer_from_model(model or "")
     if inferred:
         return _PROVIDERS[inferred]
