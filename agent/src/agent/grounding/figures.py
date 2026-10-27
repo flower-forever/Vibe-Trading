@@ -17,7 +17,7 @@ import html
 import re
 import string
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from typing import Iterable, Sequence
 
@@ -481,7 +481,40 @@ def _numbers(text: str, *, decimal_commas: bool | None = None) -> list[_Token]:
                 body, end = f"{body}.{fraction}", stop
         tokens.append(_Token(match.start(), end, sign, body.replace(",", "")))
         cursor = end
-    return sorted(tokens + protected, key=lambda token: token.start)
+    signed = [
+        replace(token, sign=text[lead]) if not token.sign and lead is not None else token
+        for token in tokens + protected
+        for lead in (_sign_before_currency(text, token.start),)
+    ]
+    return sorted(signed, key=lambda token: token.start)
+
+
+# What may stand before a sign written outside a currency mark ("PnL: -$3.20",
+# "(−$5.00)"): a hyphen after anything else joins two figures ("$10-$20"), and
+# one followed by a space ("$10 - $20") is a range, as "10 - 20" already is.
+_SIGN_BOUNDARY = frozenset("([:=,;|（［：＝，；｜")
+
+
+def _sign_before_currency(text: str, start: int) -> int | None:
+    """Where a sign glued to the left of a number's currency mark stands ("−$1,847.78").
+
+    The minus is normalized to "-" before this is read.
+
+    Args:
+        text: Normalized text.
+        start: Where the number's digits begin.
+
+    Returns:
+        The sign's index, or None when the mark carries no sign or the sign
+        does not stand at a boundary.
+    """
+    mark = _currency_prefix_start(text, start)
+    if mark == start or mark == 0 or text[mark - 1] not in "+-":
+        return None
+    before = text[mark - 2] if mark >= 2 else ""
+    if before and not before.isspace() and before not in _SIGN_BOUNDARY:
+        return None
+    return mark - 1
 
 
 def _writes_decimal_commas(text: str) -> bool:
@@ -643,7 +676,12 @@ def _parse_value(
     if not unit and tail in _MULTIPLE_MARKS:
         # "5.5x": a multiple, written the way the answer writes it.
         tail = ""
-    if not (_is_currency_mark(tail) and _is_currency_mark(field[: token.start].strip())):
+    head = field[: token.start].strip()
+    lead = _sign_before_currency(field, token.start)
+    if lead is not None and not field[:lead].strip():
+        # "−$1,847.78": the sign stands outside the mark and is the number's.
+        head = field[lead + 1 : token.start].strip()
+    if not (_is_currency_mark(tail) and _is_currency_mark(head)):
         return None
     reading = _reading(token.sign, token.digits, unit)
     if reading is None:
@@ -1169,6 +1207,9 @@ def scan_figures(content: str, block: FiguresBlock) -> list[Figure]:
                         r"^(?:\*\*|__)(.*?)(?:\*\*|__)$", r"\1", symbol_value
                     ).strip()
         mark_end = _currency_suffix_end(text, magnitude_suffix(text, unit_end)[1])
+        # A sign written before the currency mark is cut with the figure.
+        lead = _sign_before_currency(text, token.start) if token.sign else None
+        prefix_start = lead if lead is not None else _currency_prefix_start(text, token.start)
         figures.append(
             Figure(
                 text=content[start:end],
@@ -1186,7 +1227,7 @@ def scan_figures(content: str, block: FiguresBlock) -> list[Figure]:
                 currency_code=currency_code,
                 digits=token.digits,
                 sign=token.sign,
-                extent=(view.start(_currency_prefix_start(text, token.start)), view.end(mark_end)),
+                extent=(view.start(prefix_start), view.end(mark_end)),
                 fence=next(
                     (info for low, high, info, _ in fences if low <= start and digits_end <= high),
                     None,

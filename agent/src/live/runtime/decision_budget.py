@@ -165,7 +165,12 @@ class DecisionBudget:
         Dollar figures use operator-supplied prices, without cache discounts.
         Set the input rate to the highest applicable input/cache-write rate.
         """
-        values = [usage.get(k) for k in ("iter", "input_tokens", "output_tokens", "total_tokens")]
+        # One agent iteration may include several compaction calls plus its
+        # ordinary response. Deduplicate the individual calls, not that parent
+        # iteration. Legacy events without a call index keep their old key.
+        values = [usage.get("call_index", usage.get("iter")), *[
+            usage.get(k) for k in ("input_tokens", "output_tokens", "total_tokens")
+        ]]
         if any(type(v) is not int or v < 0 for v in values) or not max(values[3], values[1] + values[2]):
             with self._connect() as db:
                 db.execute("UPDATE decisions SET accounting_error=1 WHERE id=?", (decision,))

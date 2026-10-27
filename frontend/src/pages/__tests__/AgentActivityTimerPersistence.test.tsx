@@ -17,6 +17,7 @@ const apiMock = vi.hoisted(() => ({
   getLLMSettings: vi.fn(),
   getRunPreview: vi.fn(),
   getSessionMessages: vi.fn(),
+  autoTitleSession: vi.fn(),
   sseUrl: vi.fn((sid: string) => `/sessions/${sid}/events`),
 }));
 
@@ -47,6 +48,7 @@ describe("Agent activity elapsed clock survives navigation", () => {
   beforeEach(() => {
     useAgentStore.getState().reset();
     sseMock.connect.mockClear();
+    apiMock.autoTitleSession.mockReset().mockResolvedValue({ status: "updated" });
     apiMock.getGoal.mockResolvedValue(null);
     apiMock.getSessionMessages.mockResolvedValue([]);
     apiMock.getLLMSettings.mockResolvedValue({
@@ -67,6 +69,34 @@ describe("Agent activity elapsed clock survives navigation", () => {
       configurable: true,
       value: vi.fn(),
     });
+  });
+
+  it("generates a summary title after the first answer and refreshes the sidebar", async () => {
+    const router = createMemoryRouter(
+      [{ path: "/", element: <Agent /> }],
+      { initialEntries: ["/?session=session-one"] },
+    );
+    render(<RouterProvider router={router} />);
+    await waitFor(() => expect(sseMock.connect).toHaveBeenCalled());
+    act(() => {
+      useAgentStore.getState().addMessage({
+        id: "first-question", type: "user", content: "Hello", timestamp: Date.now(),
+      });
+    });
+    const refresh = vi.fn();
+    window.addEventListener("vibe:sessions-refresh", refresh);
+    try {
+      act(() => {
+        latestHandlers()["attempt.completed"]({
+          attempt_id: "first-attempt", summary: "Hello back", elapsed_ms: 100,
+        });
+      });
+      expect(useAgentStore.getState().messages.some((message) => message.content === "Hello back")).toBe(true);
+      expect(apiMock.autoTitleSession).toHaveBeenCalledWith("session-one");
+      await waitFor(() => expect(refresh).toHaveBeenCalled());
+    } finally {
+      window.removeEventListener("vibe:sessions-refresh", refresh);
+    }
   });
 
   it("keeps the running attempt's startedAt when leaving the page and coming back", async () => {

@@ -141,6 +141,14 @@ agents:
       PCA is not industry/style neutralization; its component identities can rotate.
       Use factor_analysis to compare raw/residual IC and quantile NAV on identical
       samples and holding horizons; it does not compute combination weights.
+      Use quantlib_call(module="combination", function="combine_factors") for the
+      equal/IC/ICIR baselines: each weight is estimated from IC observations strictly
+      before the row it applies to, and the result carries the applied weights plus
+      per-factor, composite and correlation diagnostics. For decayed IC, maximum IC,
+      ML or risk-parity weights, compute the weight table yourself and pass
+      method="explicit" with a time-by-factor table; the module does not choose,
+      tune or train a method. Report the weights actually used, the correlation
+      matrix and the composite IC next to the single-factor ICs.
       Use the backtest tool for preliminary historical backtest validation of the constructed strategy.
 
       ## Output Requirements

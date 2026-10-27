@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import threading
 from types import SimpleNamespace
 
@@ -531,7 +533,7 @@ def test_a_write_makes_earlier_readonly_results_unreplayable() -> None:
     messages = []
     loop._process_tool_calls([SimpleNamespace(name="factor_analysis", arguments=read, id="f2")], _Context(), messages, _Trace(), [], 3)
 
-    assert '"version":"v2"' in messages[-1]["content"]
+    assert json.loads(messages[-1]["content"])["version"] == "v2"
     assert "_vibe_replay" not in messages[-1]["content"]
 
 

@@ -134,6 +134,16 @@ class TestNormalizeSymbol:
         assert _normalize_symbol("300750", "a_share") == "300750.SZ"
         assert _normalize_symbol("830799", "a_share") == "830799.BJ"
 
+    def test_bare_a_share_follows_the_tushare_prefix_rule(self):
+        # Beijing's current 920xxx codes used to fall through to Shenzhen, and
+        # so did Shanghai funds (5xxxxx) and B shares (9xxxxx).
+        assert _normalize_symbol("920002", "a_share") == "920002.BJ"
+        assert _normalize_symbol("430047", "a_share") == "430047.BJ"
+        assert _normalize_symbol("510300", "a_share") == "510300.SH"
+        assert _normalize_symbol("900901", "a_share") == "900901.SH"
+        assert _normalize_symbol("200002", "a_share") == "200002.SZ"
+        assert _normalize_symbol("159915", "a_share") == "159915.SZ"
+
     def test_already_suffixed_passes_through(self):
         assert _normalize_symbol("AAPL.US", "us_equity") == "AAPL.US"
         assert _normalize_symbol("600000.SH", "a_share") == "600000.SH"
@@ -304,6 +314,26 @@ class TestRollingCorrelationMatrix:
         }
         labels, matrix = _rolling_correlation_matrix(price_series, window=30, method="pearson")
         i, j = labels.index("GAP"), labels.index("PEER")
+        assert matrix[i][j] == pytest.approx(1.0)
+
+    def test_weekend_bars_do_not_shift_the_return_interval(self):
+        # A 7-day crypto series paired with a weekday equity series: the
+        # equity Monday return spans Fri->Mon, so the crypto return paired
+        # with it must too. COIN closes at twice EQ on every shared date and
+        # wanders only on weekends, so on shared dates they are identical.
+        days = pd.date_range("2024-01-01", periods=56, freq="D")
+        rng = np.random.default_rng(3)
+        eq = pd.Series(100.0 * np.cumprod(1.0 + rng.normal(0, 0.01, len(days))), index=days)
+        coin = 2.0 * eq
+        coin[days.dayofweek == 5] *= 1.08
+        coin[days.dayofweek == 6] *= 0.93
+        weekdays = days[days.dayofweek < 5]
+        price_series = {
+            "COIN": pd.DataFrame({"close": coin.to_numpy()}, index=pd.Index(days, name="trade_date")),
+            "EQ": pd.DataFrame({"close": eq[weekdays].to_numpy()}, index=pd.Index(weekdays, name="trade_date")),
+        }
+        labels, matrix = _rolling_correlation_matrix(price_series, window=100, method="pearson")
+        i, j = labels.index("COIN"), labels.index("EQ")
         assert matrix[i][j] == pytest.approx(1.0)
 
     def test_empty_dict_returns_empty(self):

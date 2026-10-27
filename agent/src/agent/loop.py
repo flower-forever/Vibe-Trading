@@ -39,6 +39,7 @@ from src.agent.tuning import (
 from src.agent.loop_grounding import validate_and_release
 from src.agent.loop_streaming import TurnStream
 from src.agent.context import ContextBuilder
+from src.agent.tool_loading import prepare_registry, request_definitions
 from src.agent.grounding import GroundingLedger
 from src.agent.grounding.release import MAX_GROUNDING_REVISIONS
 from src.agent.memory import WorkspaceMemory
@@ -162,6 +163,7 @@ from src.agent.llm_usage import (  # noqa: E402
     _normalize_llm_usage as _normalize_llm_usage,
     _new_llm_usage_summary as _new_llm_usage_summary,
     _record_llm_usage as _record_llm_usage,
+    _record_unreported_llm_call as _record_unreported_llm_call,
 )
 
 
@@ -183,6 +185,7 @@ class AgentLoop(ToolCallLifecycle):
         event_callback: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         max_iterations: int = 50,
         persistent_memory: Optional[Any] = None,
+        cancel_event: Optional[threading.Event] = None,
     ) -> None:
         """Initialize AgentLoop.
 
@@ -193,8 +196,12 @@ class AgentLoop(ToolCallLifecycle):
             event_callback: Event callback (event_type, data).
             max_iterations: Maximum number of loop iterations.
             persistent_memory: PersistentMemory for cross-session recall.
+            cancel_event: Optional cancellation flag to share with long-running
+                tools (e.g. ``run_swarm``). The host session owns the event so a
+                user stop reaches both the loop and the tools it is blocked in;
+                ``None`` keeps the loop self-contained (CLI and tests).
         """
-        self.registry = registry
+        self.registry = prepare_registry(registry)
         self.llm = llm
         runtime_snapshot = getattr(llm, "runtime_snapshot", None)
         if not isinstance(runtime_snapshot, LLMRuntimeSnapshot):
@@ -230,7 +237,7 @@ class AgentLoop(ToolCallLifecycle):
         # Capture successful identities before context collapse can stub args.
         # Skipped/error call IDs never enter this ledger.
         self._successful_call_keys: dict[str, tuple[str, str]] = {}
-        self._cancel_event = threading.Event()
+        self._cancel_event = cancel_event if cancel_event is not None else threading.Event()
         self._previous_summary: str = ""
         self._persistent_memory = persistent_memory
         self._run_iteration: int = 0
@@ -240,6 +247,7 @@ class AgentLoop(ToolCallLifecycle):
         self._released_fallback_reason: str | None = None
         self._written_files: set[str] = set()
         self._stall_reason: str | None = None
+        self._budget_stop_reason: str | None = None
         self._last_activity_wall: float = 0.0
         self._run_done = threading.Event()
         # Identical deterministic tool calls (e.g. financial_rigor calc with
@@ -265,6 +273,8 @@ class AgentLoop(ToolCallLifecycle):
         self._learned_context_window: int | None = None
         self._compacted_to_tokens: int | None = None
         self._tool_schema_tokens = 0
+        self._llm_usage_summary = _new_llm_usage_summary(self.llm)
+        self._goal_usage_callback = None
 
     def cancel(self) -> None:
         """Cancel the current loop.
@@ -378,6 +388,7 @@ class AgentLoop(ToolCallLifecycle):
         self._released_fallback_reason = None
         self._written_files = set()
         self._stall_reason = None
+        self._budget_stop_reason = None
         self._last_activity_wall = _time.time()
         self._run_done = threading.Event()
         self._called_identical = {}
@@ -390,10 +401,10 @@ class AgentLoop(ToolCallLifecycle):
         self._context_meter = ContextMeter()
         self._learned_context_window: int | None = None
         self._compacted_to_tokens: int | None = None
+        self.registry = prepare_registry(self.registry)
         # Sent with every request and never compacted, so they count against
         # the window exactly like the system prompt.
-        definitions = getattr(self.registry, "get_definitions", None)
-        self._tool_schema_tokens = estimate_tokens(definitions()) if callable(definitions) else 0
+        self._tool_schema_tokens = estimate_tokens(request_definitions(self.registry))
         run_started_wall = _time.time()
 
         state_store = RunStateStore()
@@ -465,7 +476,53 @@ class AgentLoop(ToolCallLifecycle):
         # keeps tools available; ordinary correction turns do not.
         grounding_correction_text_only = False
         pending_grounding_draft = ""
-        llm_usage_summary = _new_llm_usage_summary(self.llm)
+        self._llm_usage_summary = _new_llm_usage_summary(self.llm)
+
+        def check_goal_token_budget(snapshot: dict[str, Any] | None) -> None:
+            goal = (snapshot or {}).get("goal") or {}
+            limit = goal.get("token_budget")
+            if limit is not None and int(goal.get("tokens_used") or 0) >= limit:
+                self._budget_stop_reason = (
+                    "goal_token_budget_exhausted: the research goal's token budget "
+                    "has been reached. End the goal to continue; a new goal can set a "
+                    "larger budget."
+                )
+
+        if active_goal_id and session_id:
+            from src.goal import GoalStore
+
+            goal_store = GoalStore()
+            check_goal_token_budget(goal_store.get_goal_snapshot(active_goal_id))
+
+        def account_goal_usage(usage_delta: dict[str, int] | None) -> None:
+            nonlocal goal_store, goal_turn_accounted
+            if not (active_goal_id and session_id):
+                return
+            token_delta = int(usage_delta.get("total_tokens") or 0) if usage_delta else 0
+            turn_delta = 0 if goal_turn_accounted else 1
+            if not (token_delta or turn_delta):
+                return
+            try:
+                if goal_store is None:
+                    from src.goal import GoalStore
+
+                    goal_store = GoalStore()
+                goal_store.account_usage(
+                    session_id=session_id,
+                    goal_id=active_goal_id,
+                    expected_goal_id=active_goal_id,
+                    token_delta=token_delta,
+                    turn_delta=turn_delta,
+                )
+                goal_turn_accounted = True
+                snapshot = goal_store.get_goal_snapshot(active_goal_id)
+                check_goal_token_budget(snapshot)
+                if snapshot is not None:
+                    self._emit("goal.updated", {"goal": snapshot["goal"], "snapshot": snapshot})
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("Goal usage accounting skipped: %s", exc)
+
+        self._goal_usage_callback = account_goal_usage
         last_response_model: str | None = None
         goal_continuations = 0
         goal_last_progress: tuple[int, int] | None = None
@@ -488,6 +545,9 @@ class AgentLoop(ToolCallLifecycle):
         stream_failure_streak = 0
         try:
             while iteration < self.max_iterations:
+                self._tool_schema_tokens = estimate_tokens(request_definitions(self.registry))
+                if self._budget_stop_reason is not None:
+                    break
                 if self._cancel_event.is_set():
                     trace.write({"type": "cancelled", "iter": self._run_iteration + 1})
                     logger.info("AgentLoop cancelled by user")
@@ -526,6 +586,11 @@ class AgentLoop(ToolCallLifecycle):
                         self._auto_compact(messages, run_dir, trace, iteration=current_iter)
                 else:
                     self._compact_to_budget(messages, run_dir, trace, iteration, current_iter)
+
+                # A compaction response also costs tokens. Its usage callback
+                # can exhaust the caller's budget before the next agent call.
+                if self._cancel_event.is_set() or self._budget_stop_reason is not None:
+                    break
 
                 logger.info(f"ReAct iteration {iteration}/{self.max_iterations}")
 
@@ -591,7 +656,7 @@ class AgentLoop(ToolCallLifecycle):
                 tool_defs = (
                     None
                     if is_last_iteration or correction_text_only
-                    else self.registry.get_definitions()
+                    else request_definitions(self.registry)
                 )
                 if is_last_iteration:
                     trace.write({"type": "forced_text_only", "iter": current_iter})
@@ -606,17 +671,28 @@ class AgentLoop(ToolCallLifecycle):
                 _llm_timeout_s = _llm_timeout_seconds()
                 llm_timeout = _llm_timeout_s if _llm_timeout_s > 0 else None
 
+                def stream_request():
+                    """Count usage from a failed request before any retry."""
+                    try:
+                        return self.llm.stream_chat(
+                            messages,
+                            tools=tool_defs,
+                            on_text_chunk=stream.on_text,
+                            on_reasoning_chunk=stream.on_reasoning,
+                            on_waiting_chunk=stream.on_waiting,
+                            timeout=llm_timeout,
+                            idle_timeout_s=llm_timeout,
+                            should_cancel=self._cancel_event.is_set,
+                        )
+                    except ProviderStreamError as error:
+                        self._account_llm_usage(
+                            run_dir, getattr(error, "usage_metadata", None), current_iter,
+                            purpose="failed_stream",
+                        )
+                        raise
+
                 try:
-                    response = self.llm.stream_chat(
-                        messages,
-                        tools=tool_defs,
-                        on_text_chunk=stream.on_text,
-                        on_reasoning_chunk=stream.on_reasoning,
-                        on_waiting_chunk=stream.on_waiting,
-                        timeout=llm_timeout,
-                        idle_timeout_s=llm_timeout,
-                        should_cancel=self._cancel_event.is_set,
-                    )
+                    response = stream_request()
                 except ProviderStreamError as exc:
                     # One retry for transient mid-stream failures (connection
                     # reset, relay hiccup) — mirrors the swarm worker policy.
@@ -667,27 +743,13 @@ class AgentLoop(ToolCallLifecycle):
                     # failure. A blocking sleep would make Stop take that long
                     # to be observed; the event returns the moment it is set.
                     self._cancel_event.wait(retry_delay_s)
-                    if self._cancel_event.is_set():
+                    if self._cancel_event.is_set() or self._budget_stop_reason is not None:
                         break
-                    response = self.llm.stream_chat(
-                        messages,
-                        tools=tool_defs,
-                        on_text_chunk=stream.on_text,
-                        on_reasoning_chunk=stream.on_reasoning,
-                        on_waiting_chunk=stream.on_waiting,
-                        timeout=llm_timeout,
-                        idle_timeout_s=llm_timeout,
-                        should_cancel=self._cancel_event.is_set,
-                    )
+                    response = stream_request()
                 else:
                     stream_failure_streak = 0
 
                 self._consume_readonly_replay_visibility(messages, trace, current_iter)
-
-                # Cancelled mid-stream: discard this turn's partial response and
-                # end the run now, without executing any of its tool calls.
-                if self._cancel_event.is_set():
-                    break
 
                 # An LLM response arrived - real progress for the stall watchdog.
                 self._last_activity_wall = _time.time()
@@ -698,55 +760,18 @@ class AgentLoop(ToolCallLifecycle):
                 self._context_meter.observe(
                     usage.get("input_tokens") if isinstance(usage, dict) else None,
                     messages,
+                    tool_schema_tokens=estimate_tokens(tool_defs) if tool_defs else 0,
                 )
                 if current_response_model:
                     last_response_model = current_response_model
-                usage_delta = _record_llm_usage(
-                    run_dir,
-                    llm_usage_summary,
-                    usage,
-                    current_iter,
-                )
-                if usage_delta:
-                    self._emit(
-                        "llm_usage",
-                        {
-                            **usage_delta,
-                            "iter": current_iter,
-                        },
-                    )
-                else:
-                    self._emit("llm_usage_unavailable", {"iter": current_iter})
+                self._account_llm_usage(run_dir, usage, current_iter)
                 # A caller's spending monitor can cancel synchronously on the
-                # usage event. Do not execute tools from that paid response.
-                if self._cancel_event.is_set():
+                # usage event. Do not execute tools from that paid response; a
+                # text-only answer that crossed a goal budget is still released.
+                if self._cancel_event.is_set() or (
+                    self._budget_stop_reason is not None and response.has_tool_calls
+                ):
                     break
-                if active_goal_id and session_id:
-                    token_delta = int(usage_delta.get("total_tokens") or 0) if usage_delta else 0
-                    turn_delta = 0 if goal_turn_accounted else 1
-                    if token_delta or turn_delta:
-                        try:
-                            if goal_store is None:
-                                from src.goal import GoalStore
-
-                                goal_store = GoalStore()
-                            goal_store.account_usage(
-                                session_id=session_id,
-                                goal_id=active_goal_id,
-                                expected_goal_id=active_goal_id,
-                                token_delta=token_delta,
-                                turn_delta=turn_delta,
-                            )
-                            goal_turn_accounted = True
-                            snapshot = goal_store.get_goal_snapshot(active_goal_id)
-                            if snapshot is not None:
-                                self._emit(
-                                    "goal.updated",
-                                    {"goal": snapshot["goal"], "snapshot": snapshot},
-                                )
-                        except Exception as exc:  # noqa: BLE001
-                            logger.debug("Goal usage accounting skipped: %s", exc)
-
                 thinking_text = "".join(stream.thinking_chunks)
                 if thinking_text:
                     trace.write_text_entry(
@@ -1123,6 +1148,8 @@ class AgentLoop(ToolCallLifecycle):
                 empty_response_provider=self._llm_runtime.provider,
                 empty_response_model=self._llm_runtime.configured_model or "(unset)",
                 max_iterations=self.max_iterations,
+                budget_reason=self._budget_stop_reason,
+                answer_released=bool(final_content),
             )
         )
         final_reason = outcome.reason
@@ -1405,6 +1432,39 @@ class AgentLoop(ToolCallLifecycle):
         return unreadable_tools
 
 
+    def _account_llm_usage(
+        self, run_dir: Path, usage: Any, iteration: int, *, purpose: str | None = None,
+    ) -> None:
+        """Persist reported usage and notify spending monitors before more work.
+
+        Args:
+            run_dir: Active run's artifact directory.
+            usage: Provider metadata, or None when unavailable.
+            iteration: Parent agent iteration, also for auxiliary calls.
+            purpose: Auxiliary call kind; omitted for ordinary agent responses.
+        """
+        delta = _record_llm_usage(
+            run_dir, self._llm_usage_summary, usage, iteration, purpose=purpose,
+        )
+        if self._goal_usage_callback is not None:
+            self._goal_usage_callback(delta)
+        metadata = {"iter": iteration}
+        if purpose is not None:
+            metadata["purpose"] = purpose
+        if delta:
+            self._emit("llm_usage", {
+                **delta, **metadata,
+                "call_index": self._llm_usage_summary["totals"]["calls"],
+            })
+        elif purpose is None and not self._cancel_event.is_set():
+            self._emit("llm_usage_unavailable", metadata)
+        else:
+            # A failed stream, a compaction call or a cancelled response that
+            # reported nothing is counted as unreported, not announced as a
+            # missing bill: the live decision budget halts on that event, so a
+            # retried connection reset stopped live decisions for the day.
+            _record_unreported_llm_call(run_dir, self._llm_usage_summary)
+
     # -- Context compression ---------------------------------------------------
 
     def _auto_compact(
@@ -1431,7 +1491,8 @@ class AgentLoop(ToolCallLifecycle):
             focus_topic: Optional topic to prioritize in the summary.
             iteration: Current trace iteration.
         """
-        del run_dir
+        if self._cancel_event.is_set() or self._budget_stop_reason is not None:
+            return
         # Save full transcript before compressing next to the active trace.
         transcript_path = trace.dir_path / f"transcript_{int(_time.time())}.jsonl"
         with open(transcript_path, "w", encoding="utf-8") as f:
@@ -1485,6 +1546,8 @@ class AgentLoop(ToolCallLifecycle):
         degraded_compact = False
         _compact_timeout = _llm_timeout_seconds()
         for conv_text in chunks:
+            if self._cancel_event.is_set() or self._budget_stop_reason is not None:
+                return
             # Structured template while there is still nothing to update — that
             # covers a fresh session's first chunk and the corner case where
             # every fold so far returned empty content.
@@ -1535,6 +1598,7 @@ class AgentLoop(ToolCallLifecycle):
                         _compact_timeout,
                     )
                     degraded_compact = True
+                    self._account_llm_usage(run_dir, None, iteration, purpose="compaction")
                     break
                 if _compact_error:
                     logger.warning(
@@ -1542,10 +1606,21 @@ class AgentLoop(ToolCallLifecycle):
                         _compact_error[0],
                     )
                     degraded_compact = True
+                    self._account_llm_usage(run_dir, None, iteration, purpose="compaction")
                     break
                 summary_resp = _compact_result[0]
             else:
-                summary_resp = self.llm.chat([{"role": "user", "content": prompt}])
+                try:
+                    summary_resp = self.llm.chat([{"role": "user", "content": prompt}])
+                except Exception:
+                    self._account_llm_usage(run_dir, None, iteration, purpose="compaction")
+                    raise
+            self._account_llm_usage(
+                run_dir, getattr(summary_resp, "usage_metadata", None), iteration,
+                purpose="compaction",
+            )
+            if self._cancel_event.is_set() or self._budget_stop_reason is not None:
+                return
             if summary_resp.content:
                 summary = summary_resp.content
         if degraded_compact and not summary:

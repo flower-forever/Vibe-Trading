@@ -1018,7 +1018,9 @@ class _PolicyMixin:
         two backtests hold two different Sharpes — so a ref naming several
         runs pools them, and a ref naming only a file pools that file across
         runs, like a ref naming the tool. A file or field the ref also names
-        narrows the set when the run holds it and is ignored otherwise.
+        narrows the set when the run holds it and is ignored otherwise. The
+        active run written as ``run_dir/`` or by its own name is read as the
+        path below it (:func:`_run_dir_alias`).
 
         Args:
             key: The declaration's ref, or one half of ``scope::field``.
@@ -1046,6 +1048,12 @@ class _PolicyMixin:
             if not token:
                 continue
             hits = _records_at(token, owned, root)
+            alias = None if hits else _run_dir_alias(token, root)
+            if alias is not None:
+                # "run_dir/artifacts/metrics.csv": the active run under a
+                # stand-in name, read as the path or file below it.
+                hits = _records_at(alias, owned, root)
+                token = alias if hits or "/" not in alias else token
             if hits:
                 chosen.update((id(record), record) for record in hits)
             elif token != key.strip() and any(record.tool == token for record in owned):
@@ -2522,6 +2530,32 @@ _REF_TOKEN_RE = re.compile(r"::?|[\s,，;；()（）\[\]]+")
 def _file_stem(path: str) -> str:
     """A file's name up to its first dot, casefolded: ``target_positions`` for any spelling."""
     return str(path).rsplit("/", 1)[-1].split(".", 1)[0].casefold()
+
+
+#: How a model names the active run directory when it does not know its path.
+_RUN_DIR_PLACEHOLDER = "run_dir"
+
+
+def _run_dir_alias(token: str, root: Path) -> str | None:
+    """The root-relative path a ref token names through a stand-in for the active run.
+
+    A model writes the active run directory as the placeholder ``run_dir`` or
+    by its own name (``20261021_195945_86_52d4e2/artifacts/metrics.csv``); both
+    stand for the ledger's root, so the rest is read from there exactly as if
+    written relative to it. A path leaving the run directory (absolute, or
+    ``..`` once normalized) starts with neither and has no alias.
+
+    Args:
+        token: One part of a ref that named no record as written.
+        root: The ledger's resolved run directory.
+
+    Returns:
+        The path below the stand-in, or None.
+    """
+    parts = Path(os.path.normpath(token)).parts
+    if len(parts) > 1 and parts[0] in (_RUN_DIR_PLACEHOLDER, root.name):
+        return "/".join(parts[1:])
+    return None
 
 
 def _records_at(

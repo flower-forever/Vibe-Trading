@@ -132,8 +132,11 @@ class TestExecute:
     def test_unresolved_fund_reports_error_not_abort(self, monkeypatch):
         def transport(tool, args):
             if tool == "ParamCandidateRecall":
+                # 110022 is offered here rather than left to the code cache an
+                # earlier test wrote, so this test passes when run alone.
                 return {
                     "candidates": [
+                        {"caption": "易方达消费行业股票", "code": "11363", "ref_code": "110022.OF"},
                         {"caption": "别的基金", "code": "1", "ref_code": "000001.OF"},
                     ]
                 }

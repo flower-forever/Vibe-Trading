@@ -192,7 +192,9 @@ def verify_valuation(
     """Derive valuation ratios from raw per-share inputs (exact decimal).
 
     Each optional input, when supplied and non-zero, contributes its metric(s).
-    ROE additionally requires both ``eps`` and ``bvps``.
+    ROE additionally requires both ``eps`` and ``bvps``. Earnings yield and
+    FCF yield also need a non-zero price; a zero price omits them, the same
+    way dividend yield already does, instead of raising.
 
     Args:
         price: Current share price.
@@ -212,7 +214,8 @@ def verify_valuation(
         e = _exact(eps)
         if e != 0:
             metrics["PE"] = float(_CTX.divide(p, e))
-            metrics["earnings_yield_pct"] = float(_CTX.divide(e, p) * 100)
+            if p != 0:
+                metrics["earnings_yield_pct"] = float(_CTX.divide(e, p) * 100)
     if bvps is not None:
         b = _exact(bvps)
         if b != 0:
@@ -223,7 +226,8 @@ def verify_valuation(
         f = _exact(fcf_per_share)
         if f != 0:
             metrics["P_FCF"] = float(_CTX.divide(p, f))
-            metrics["FCF_yield_pct"] = float(_CTX.divide(f, p) * 100)
+            if p != 0:
+                metrics["FCF_yield_pct"] = float(_CTX.divide(f, p) * 100)
     if dividend is not None:
         d = _exact(dividend)
         if p != 0:

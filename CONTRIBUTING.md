@@ -21,6 +21,38 @@ agent run or its SSE stream. Factor submissions are the exception to the write
 retry rule: the Web UI reuses a request ID, and the server returns the existing
 job for an identical submission instead of starting another worker.
 
+## Runtime cost and evidence handling
+
+The agent exposes tool schemas on demand for registries of at least 16 tools.
+The system prompt retains the complete catalog; `load_tools` only reveals exact
+schemas and never executes a domain tool or changes its permissions. Schema
+state belongs to one question and contributes to measured context usage.
+`VIBE_TRADING_TOOL_LOADING=eager` restores full schemas for provider compatibility.
+The discovery policy is packaged in `src/agent/tool_loading.json`.
+
+A direct lookup uses its tool contract. A normal backtest reports results,
+validation warnings and limitations; additional attribution or optimization
+follows the user's request. Existing numerical grounding and live order gates
+remain in place. Web chat still generates a model-written summary title after
+the first completed exchange, without overwriting a manual rename.
+
+Large tool results are redacted and saved under the current run's `tool-results/`
+when its tools can read the files. The bounded receipt names the original file
+and readable parts; it does not imply that a sampled upstream response is complete.
+Read failures retain explicit truncation rather than advertising an unavailable
+file. Swarm uses the same model-window/context ceiling as the main agent and
+saves old observations under pressure only after a successful request has seen
+them. It stops if the next request still cannot fit. These files are run artifacts,
+not a persistent market-data cache.
+
+`llm_usage.json` includes provider-reported compaction, cancelled-response and
+failed-stream usage. Auxiliary calls carry a `purpose`; `call_index` distinguishes
+several calls in one iteration. Unavailable usage is emitted explicitly rather
+than reported as zero. A goal's token budget stops further model/tool work once
+reported usage reaches the limit; the last in-flight response can exceed it.
+`LANGCHAIN_MAX_TOKENS` remains an optional output cap and is forwarded by both
+DeepSeek adapters without changing the model or reasoning settings.
+
 ## Specialized analysis
 
 In Factor Research, select one factor to evaluate only that factor, or several

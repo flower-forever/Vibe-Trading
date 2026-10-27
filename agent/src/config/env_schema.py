@@ -23,7 +23,7 @@ import os
 import types
 from enum import Enum
 
-from typing import Annotated, Any, Union, get_args, get_origin
+from typing import Annotated, Any, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, model_validator
 
@@ -470,6 +470,9 @@ class AgentTuningConfig(_EnvBase):
     # (multi-layer scoring, batch research) legitimately exceed 50 turns.
     vibe_trading_agent_max_iterations: int = Field(
         alias="VIBE_TRADING_AGENT_MAX_ITERATIONS", default=50, ge=1,
+    )
+    vibe_trading_tool_loading: Literal["eager", "lazy"] = Field(
+        alias="VIBE_TRADING_TOOL_LOADING", default="lazy",
     )
     vibe_trading_context_window: int | None = Field(
         alias="VIBE_TRADING_CONTEXT_WINDOW", default=None, gt=0,

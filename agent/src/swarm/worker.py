@@ -20,7 +20,7 @@ from src.agent.llm_usage import _normalize_llm_usage
 from src.agent.progress import HeartbeatTimer
 from src.agent.skills import SkillsLoader
 from src.agent.tools import BaseTool, ToolRegistry
-from src.config.limits import truncate_tool_result
+from src.agent.result_artifacts import deliver_tool_result
 from src.config.schema import AgentConfig
 from src.providers.chat import ChatLLM, LLMResponse, ProviderStreamError
 from src.providers.content_filter import (
@@ -34,6 +34,7 @@ from src.swarm.models import (
     SwarmTask,
     WorkerResult,
 )
+from src.swarm.context import WorkerContext
 from src.tools import build_swarm_registry
 from src.tools.mcp import MCPRemoteTool
 from src.tools.redaction import redact_payload, redact_tool_result
@@ -116,7 +117,8 @@ def _escalated_stream_retry_delay_s(streak: int) -> float:
 _HEARTBEAT_INTERVAL_S = _heartbeat_interval_s()
 _STREAM_RETRY_DELAY_S = _stream_retry_delay_s()
 _STREAM_RETRY_MAX_DELAY_S = _stream_retry_max_delay_s()
-_MAX_TOKEN_ESTIMATE = 60_000
+# Test override; production uses the model window and configured cost ceiling.
+_MAX_TOKEN_ESTIMATE: int | None = None
 
 
 def _emit(
@@ -397,13 +399,19 @@ def build_worker_prompt(
     # paragraphs in under markdown decoration instead of leading with it
     # as their own role instructions require.
     has_code_tools = bool({"write_file", "bash", "edit_file"} & set(agent_spec.tools or []))
+    iteration_budget = agent_spec.max_iterations or _default_max_iterations()
+    budget_rule = (
+        f"You have at most {iteration_budget} model iterations. Each iteration can "
+        "request multiple independent tools. Reuse available results and finish "
+        "once the requested deliverable is complete.\n\n"
+    )
     if has_code_tools:
         prompt_parts.append(
             "## Execution Rules\n\n"
-            "You have a HARD LIMIT of 20 tool calls. After that you will be cut off. Work efficiently.\n\n"
+            + budget_rule +
             "**Phase 1 — Plan (0 tool calls):** Before calling any tool, state your plan in 3-5 bullet points.\n\n"
-            "**Phase 2 — Execute (≤15 tool calls):**\n"
-            "- `load_skill` first to get data access methods and analysis patterns.\n"
+            "**Phase 2 — Execute:**\n"
+            "- Load a relevant skill when its method or API contract is needed; direct tool lookups do not require a preliminary skill read.\n"
             "- Write ONE focused Python script via `write_file`, then run it with `bash python script.py`.\n"
             "- Do NOT write long Python code inside bash. Use write_file + bash.\n"
             "- Do NOT fetch data with curl/requests. Use the patterns from load_skill (yfinance, OKX API via Python).\n"
@@ -418,7 +426,7 @@ def build_worker_prompt(
     else:
         prompt_parts.append(
             "## Execution Rules\n\n"
-            "You have a HARD LIMIT of 20 tool calls. After that you will be cut off. Work efficiently.\n\n"
+            + budget_rule +
             "**Plan (0 tool calls):** Before calling any tool, state your plan in 3-5 bullet points.\n\n"
             "**Execute:** You do not have `write_file`/`bash`/`edit_file` in this role -- call your "
             "assigned data/analysis tools directly to gather what your role needs. Do not attempt to "
@@ -707,6 +715,27 @@ def _run_worker_impl(
     # 6. ReAct loop
     artifact_dir = agent_artifact_dir(run_dir, agent_id, task_id)
     artifact_dir.mkdir(parents=True, exist_ok=True)
+    get_tool = getattr(registry, "get", None)
+    worker_context = WorkerContext(
+        model=agent_spec.model_name or getattr(llm, "model_name", "") or "",
+        artifact_dir=artifact_dir,
+        can_read_files=callable(get_tool) and get_tool("read_file") is not None,
+    )
+
+    def account_response(response: LLMResponse) -> None:
+        """Count each attempt, retaining cache fields and estimated provenance."""
+        nonlocal total_input_tokens, total_output_tokens
+        nonlocal total_cache_read_tokens, total_cache_creation_tokens, token_source
+        measured = _measure_usage(messages, response)
+        total_input_tokens += measured.input_tokens
+        total_output_tokens += measured.output_tokens
+        total_cache_read_tokens += measured.cache_read_tokens
+        total_cache_creation_tokens += measured.cache_creation_tokens
+        token_source = (
+            "estimated"
+            if token_source == "estimated" or measured.token_source == "estimated"
+            else "provider"
+        )
 
     t0 = time.monotonic()
     iteration = 0
@@ -716,21 +745,12 @@ def _run_worker_impl(
     wrap_up_at = max(1, int(max_iterations * 0.8))
     last_assistant_content = ""
 
-    _KEEP_RECENT_TOOLS = 3
     data_tool_calls = 0
     content_filter_count = 0
     consecutive_content_filter_count = 0
     stream_failure_streak = 0
 
     for iteration in range(max_iterations):
-        # Microcompact: clear old tool results to prevent token bloat
-        tool_msgs = [m for m in messages if m.get("role") == "tool"]
-        if len(tool_msgs) > _KEEP_RECENT_TOOLS:
-            for msg in tool_msgs[:-_KEEP_RECENT_TOOLS]:
-                content = msg.get("content", "")
-                if isinstance(content, str) and len(content) > 100:
-                    msg["content"] = "[cleared]"
-
         # Check timeout
         elapsed = time.monotonic() - t0
         if elapsed > timeout:
@@ -775,28 +795,6 @@ def _run_worker_impl(
                 ),
             )
 
-        # Check token estimate
-        token_estimate = len(json.dumps(messages, ensure_ascii=False)) // 4
-        if token_estimate > _MAX_TOKEN_ESTIMATE:
-            summary = last_assistant_content or f"Worker context too large (~{token_estimate} tokens, {iteration} iterations)"
-            summary = _resolve_summary(artifact_dir, summary)
-            _emit(event_callback, "worker_token_limit", agent_id, task_id, {"tokens": token_estimate})
-            _finalize_run(artifact_dir, summary, messages)
-            return WorkerResult(
-                status="token_limit",
-                summary=summary,
-                artifact_paths=_collect_artifacts(run_dir, artifact_dir),
-                iterations=iteration,
-                input_tokens=total_input_tokens,
-                output_tokens=total_output_tokens,
-                cache_read_tokens=total_cache_read_tokens,
-                cache_creation_tokens=total_cache_creation_tokens,
-                token_source=token_source,
-                content_filter_warnings=compute_content_filter_warnings(
-                    content_filter_count, iteration + 1,
-                ),
-            )
-
         # Inject wrap-up nudge when approaching iteration limit
         if iteration == wrap_up_at:
             remaining = max_iterations - iteration
@@ -823,6 +821,33 @@ def _run_worker_impl(
         # On last iteration, call LLM without tool definitions to force text output
         is_last_iteration = iteration == max_iterations - 1
         tool_defs = None if is_last_iteration else registry.get_definitions()
+        compacted = worker_context.compact(messages, tool_defs)
+        if compacted:
+            _emit(event_callback, "worker_context_offloaded", agent_id, task_id,
+                  {"iteration": iteration, "results": compacted})
+        token_estimate = worker_context.tokens(messages, tool_defs)
+        token_limit = (worker_context.budget(messages, tool_defs).total
+                       if _MAX_TOKEN_ESTIMATE is None else _MAX_TOKEN_ESTIMATE)
+        if token_estimate > token_limit:
+            summary = last_assistant_content or f"Worker context too large (~{token_estimate} tokens, {iteration} iterations)"
+            summary = _resolve_summary(artifact_dir, summary)
+            _emit(event_callback, "worker_token_limit", agent_id, task_id, {"tokens": token_estimate})
+            _finalize_run(artifact_dir, summary, messages)
+            return WorkerResult(
+                status="token_limit",
+                summary=summary,
+                artifact_paths=_collect_artifacts(run_dir, artifact_dir),
+                iterations=iteration,
+                input_tokens=total_input_tokens,
+                output_tokens=total_output_tokens,
+                cache_read_tokens=total_cache_read_tokens,
+                cache_creation_tokens=total_cache_creation_tokens,
+                token_source=token_source,
+                content_filter_warnings=compute_content_filter_warnings(
+                    content_filter_count, iteration + 1,
+                ),
+            )
+
 
         # Stream the LLM — moonshot/kimi non-streaming invoke is unreliable
         # (issue #42), and streaming also feeds dashboard live progress.
@@ -870,13 +895,22 @@ def _run_worker_impl(
                     interval=_HEARTBEAT_INTERVAL_S,
                     emit=_on_llm_heartbeat,
                 ):
-                    return llm.stream_chat(
-                        messages,
-                        tools=tool_defs,
-                        timeout=remaining_timeout,
-                        on_text_chunk=_on_text_chunk,
-                        **stream_kwargs,
-                    )
+                    try:
+                        return llm.stream_chat(
+                            messages,
+                            tools=tool_defs,
+                            timeout=remaining_timeout,
+                            on_text_chunk=_on_text_chunk,
+                            **stream_kwargs,
+                        )
+                    except ProviderStreamError as error:
+                        usage = getattr(error, "usage_metadata", None)
+                        account_response(LLMResponse(usage_metadata=usage))
+                        _emit(event_callback, "worker_stream_usage", agent_id, task_id,
+                              {"iteration": iteration, "usage": usage,
+                               "status": "failed_stream"})
+                        raise
+
 
             # A transient mid-stream hiccup (connection reset) used to be
             # absorbed by ChatLLM's silent non-streaming fallback; it now
@@ -969,16 +1003,8 @@ def _run_worker_impl(
         # cache breakdown). The provenance label is sticky-estimated, mirroring
         # runtime._merge_token_source: one heuristic iteration contaminates the
         # cumulative total, so a partly-estimated sum never reads as billed.
-        measured = _measure_usage(messages, response)
-        total_input_tokens += measured.input_tokens
-        total_output_tokens += measured.output_tokens
-        total_cache_read_tokens += measured.cache_read_tokens
-        total_cache_creation_tokens += measured.cache_creation_tokens
-        token_source = (
-            "estimated"
-            if token_source == "estimated" or measured.token_source == "estimated"
-            else "provider"
-        )
+        worker_context.observe(messages, tool_defs, getattr(response, "usage_metadata", None))
+        account_response(response)
 
         # Track last meaningful assistant content
         if response.content and len(response.content.strip()) > 20:
@@ -1127,6 +1153,9 @@ def _run_worker_impl(
                     )
                 else:
                     result = registry.execute(tc.name, args)
+            # The model and persisted conversation need the same protection as
+            # event previews, before truncation can cut a credential envelope.
+            result = redact_tool_result(result)
             result_is_error = _is_error_result(result)
             if tc.name != "load_skill" and not result_is_error:
                 data_tool_calls += 1
@@ -1148,9 +1177,10 @@ def _run_worker_impl(
             )
             messages.append(
                 ContextBuilder.format_tool_result(
-                    tc.id, tc.name, truncate_tool_result(result)
+                    tc.id, tc.name, deliver_tool_result(result, artifact_dir, registry)
                 )
             )
+            worker_context.pending.add(tc.id)
 
     # Content filter ratio tracking
     content_filter_warnings = compute_content_filter_warnings(

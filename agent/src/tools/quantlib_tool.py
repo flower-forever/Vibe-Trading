@@ -76,6 +76,7 @@ ALLOWED_MODULES: dict[str, str] = {
     "eventstudy": "src.quantlib.eventstudy",
     "factormodel": "src.quantlib.factormodel",
     "neutralization": "src.quantlib.neutralization",
+    "combination": "src.quantlib.combination",
     "multipletesting": "src.quantlib.multipletesting",
     "crossvalidation": "src.quantlib.crossvalidation",
     "valuation.dcf": "src.quantlib.valuation.dcf",
@@ -276,7 +277,9 @@ class QuantlibCallTool(BaseTool):
         "Brinson-Fachler attribution, market impact, fund maths "
         "(XIRR/MOIC/DPI/TVPI/PME/waterfalls), TWR/Dietz/MWR, event studies "
         "(CAR/CAAR/Patell/BMP), style factor models, cross-sectional OLS/WLS "
-        "factor neutralization and PCA at any observation frequency, deflated Sharpe and PBO, "
+        "factor neutralization and PCA at any observation frequency, "
+        "multi-factor combination with walk-forward IC weights, "
+        "deflated Sharpe and PBO, "
         "purged cross-validation, and the valuation engine (DCF / comps / "
         "three-statement). Read-only and pure-compute: it fetches no data and "
         "writes no files. Start with action='list' to see modules, then "

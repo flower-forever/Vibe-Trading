@@ -7,8 +7,8 @@ provider payload shapes, the run-scoped accumulator, and the atomic write of
 ``llm_usage.json`` beside a run. ``loop.py`` re-exports every moved name, so
 existing imports keep working.
 
-Behavior is unchanged: every function body, docstring, and comment moved
-byte-for-byte.
+Auxiliary calls share the accumulator, with their purpose recorded separately.
+Reported reasoning tokens are retained as a subset of output tokens.
 """
 
 from __future__ import annotations
@@ -63,6 +63,9 @@ def _normalize_llm_usage(usage: Any) -> dict[str, int] | None:
             normalized["cache_creation_tokens"] = sum(
                 _coerce_usage_int(details.get(key)) for key in creation_keys
             )
+    output_details = usage.get("output_token_details")
+    if isinstance(output_details, dict) and output_details.get("reasoning") is not None:
+        normalized["reasoning_tokens"] = _coerce_usage_int(output_details["reasoning"])
     return normalized
 
 
@@ -90,6 +93,8 @@ def _record_llm_usage(
     summary: dict[str, Any],
     usage: Any,
     iteration: int,
+    *,
+    purpose: str | None = None,
 ) -> dict[str, int] | None:
     """Accumulate and persist one provider-reported usage event."""
     normalized = _normalize_llm_usage(usage)
@@ -101,12 +106,32 @@ def _record_llm_usage(
     totals["output_tokens"] = int(totals.get("output_tokens") or 0) + normalized["output_tokens"]
     totals["total_tokens"] = int(totals.get("total_tokens") or 0) + normalized["total_tokens"]
     totals["calls"] = int(totals.get("calls") or 0) + 1
-    for key in ("cache_read_tokens", "cache_creation_tokens"):
+    for key in ("cache_read_tokens", "cache_creation_tokens", "reasoning_tokens"):
         if key in normalized:
             totals[key] = int(totals.get(key) or 0) + normalized[key]
-    summary.setdefault("per_iteration", []).append({"iter": iteration, **normalized})
-    summary["updated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    entry = {"iter": iteration, **normalized}
+    if purpose is not None:
+        entry["purpose"] = purpose
+    summary.setdefault("per_iteration", []).append(entry)
+    _write_llm_usage(run_dir, summary)
+    return normalized
 
+
+def _record_unreported_llm_call(run_dir: Path, summary: dict[str, Any]) -> None:
+    """Count a call whose provider reported no usage, without inventing tokens.
+
+    Args:
+        run_dir: Active run's artifact directory.
+        summary: The run's usage summary, updated in place.
+    """
+    totals = summary.setdefault("totals", {})
+    totals["unreported_calls"] = int(totals.get("unreported_calls") or 0) + 1
+    _write_llm_usage(run_dir, summary)
+
+
+def _write_llm_usage(run_dir: Path, summary: dict[str, Any]) -> None:
+    """Stamp and atomically persist the usage summary; a write failure is logged."""
+    summary["updated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     try:
         path = run_dir / LLM_USAGE_ARTIFACT
         tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -117,5 +142,3 @@ def _record_llm_usage(
         tmp_path.replace(path)
     except OSError as exc:
         logger.debug("LLM usage artifact write skipped: %s", exc)
-
-    return normalized

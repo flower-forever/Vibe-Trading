@@ -69,6 +69,20 @@ def test_missing_usage_and_crash_do_not_reset_budget(tmp_path):
         _store(tmp_path).begin(settings, NOW + timedelta(hours=1))
 
 
+def test_compaction_calls_share_iteration_without_being_deduplicated(tmp_path):
+    budget = _store(tmp_path)
+    settings = DecisionSettings(max_daily_tokens=300)
+    decision = budget.begin(settings, NOW)
+    first = {**_usage(), "purpose": "compaction", "call_index": 1}
+    second = {**_usage(), "purpose": "compaction", "call_index": 2}
+    budget.record(decision, first, settings, NOW)
+    budget.record(decision, first, settings, NOW)  # SSE replay is still idempotent.
+    budget.record(decision, second, settings, NOW)
+    with pytest.raises(DecisionBudgetError, match="token budget"):
+        budget.record(decision, {**_usage(), "call_index": 3}, settings, NOW)
+    assert budget.snapshot(NOW)["usage"]["tokens"] == 330
+
+
 def test_daily_schedule_follows_dst_and_fires_once(tmp_path):
     budget = _store(tmp_path)
     settings = DecisionSettings(daily_at="10:00")

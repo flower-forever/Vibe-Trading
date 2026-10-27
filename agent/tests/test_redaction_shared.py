@@ -468,10 +468,11 @@ def test_plaintext_result_secret_reaches_neither_trace_nor_preview(
         assert _PLAINTEXT_KEY_SECRET not in preview
         assert _PLAINTEXT_BEARER_SECRET not in preview
 
-    # Deliberate boundary: the LLM still receives the real result, because the
-    # model needs the unredacted text to act on it. Only persisted/streamed
-    # surfaces are scrubbed.
-    assert _PLAINTEXT_KEY_SECRET in messages[0]["content"]
+    # Data-source credentials are consumed by tools, not forwarded to the
+    # model provider. The diagnostic remains useful without either secret.
+    assert _PLAINTEXT_KEY_SECRET not in messages[0]["content"]
+    assert _PLAINTEXT_BEARER_SECRET not in messages[0]["content"]
+    assert "connect failed" in messages[0]["content"]
 
 
 def test_write_file_content_argument_never_lands_in_the_trace(tmp_path: Path) -> None:

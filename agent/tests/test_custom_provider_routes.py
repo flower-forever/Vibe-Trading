@@ -45,10 +45,37 @@ def test_custom_provider_base_url_rejects_embedded_credentials() -> None:
         custom_provider_routes._validate_custom_base_url("https://user:pass@example.test/v1")
 
 
-@pytest.mark.parametrize("base_url", ["http://127.0.0.1/v1", "http://localhost/v1", "http://169.254.169.254/v1"])
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://127.0.0.1/v1",
+        "http://localhost/v1",
+        "http://169.254.169.254/v1",
+        "http://100.100.100.200/v1",
+        "http://[::ffff:127.0.0.1]/v1",
+        "http://[::ffff:100.100.100.200]/v1",
+    ],
+)
 def test_custom_provider_base_url_rejects_local_targets(base_url: str) -> None:
     with pytest.raises(ValueError):
         custom_provider_routes._validate_custom_base_url(base_url)
+
+
+def test_custom_provider_base_url_accepts_a_public_address() -> None:
+    assert custom_provider_routes._validate_custom_base_url("https://8.8.8.8/v1") == "https://8.8.8.8/v1"
+
+
+@pytest.mark.parametrize("resolved", ["100.100.100.200", "10.0.0.5", "::ffff:169.254.169.254"])
+def test_custom_provider_dns_target_rejects_non_public_resolution(
+    monkeypatch: pytest.MonkeyPatch, resolved: str
+) -> None:
+    monkeypatch.setattr(
+        custom_provider_routes.socket,
+        "getaddrinfo",
+        lambda *_args, **_kwargs: [(None, None, None, "", (resolved, 0))],
+    )
+    with pytest.raises(ValueError, match="resolves to a local or private network address"):
+        custom_provider_routes._reject_private_dns_targets("https://provider.example/v1")
 
 
 def test_store_never_serializes_api_key(tmp_path: Path) -> None:
@@ -244,7 +271,7 @@ def test_real_completion_transport_redacts_key_and_sends_expected_request(monkey
         seen.append(request)
         return httpx.Response(200, json={"choices": [{"message": {"content": "OK synthetic-secret"}}]})
     monkeypatch.setattr(custom_provider_routes, "_reject_private_dns_targets", lambda _: None)
-    monkeypatch.setattr(custom_provider_routes.httpx, "AsyncClient", lambda **kw: actual_client(transport=httpx.MockTransport(handle), **kw))
+    monkeypatch.setattr(custom_provider_routes, "_provider_async_client", lambda _url: actual_client(transport=httpx.MockTransport(handle)))
     result = asyncio.run(custom_provider_routes._perform_completion_test(base_url="https://example.test/v1", model="demo", api_key="synthetic-secret"))
     assert result["response_preview"] == "OK [redacted]"
     assert str(seen[0].url) == "https://example.test/v1/chat/completions"

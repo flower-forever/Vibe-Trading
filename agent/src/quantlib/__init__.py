@@ -24,6 +24,7 @@ Submodules:
   eventstudy   Abnormal returns around dated events (CAR/CAAR, Patell, BMP)
   factormodel  Cross-sectional style exposures, factor returns, style drift
   neutralization  Per-observation OLS/WLS factor residuals and cross-sectional PCA
+  combination  Walk-forward IC/ICIR composites of several factor panels
   attribution  Brinson-Fachler allocation/selection/interaction
   impact       Market-impact and slippage models
   fundmath     Private-markets fund maths on the irregular cash-flow spine

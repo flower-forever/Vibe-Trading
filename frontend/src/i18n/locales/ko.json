@@ -1,6 +1,6 @@
 {
   "app": {
-    "version": "v0.1.16"
+    "version": "v0.1.18"
   },
   "navigation": {
     "menu": "기능 둘러보기",
@@ -22,7 +22,8 @@
       "scheduled": "지정한 주기로 리서치를 반복합니다.",
       "runtime": "브로커 연결과 거래 실행 상태를 확인합니다.",
       "settings": "모델, 데이터 소스, 브로커 연결을 설정합니다.",
-      "pixelOffice": "리서치 작업을 계획하고 배정합니다. 배정만으로 실행되지는 않으며, 직급은 거래 권한을 부여하지 않는 표시에 불과합니다."
+      "pixelOffice": "리서치 작업을 계획하고 배정합니다. 배정만으로 실행되지는 않으며, 직급은 거래 권한을 부여하지 않는 표시에 불과합니다.",
+      "paperTrading": "가상 자금으로 일별 거래를 테스트합니다. 증권사에 주문을 보내지 않습니다. 현금 배당을 제외하므로 총수익이 아닙니다."
     },
     "instructions": {
       "reports": "먼저 도우미에게 전략 백테스트를 요청한 후 여기에서 결과를 엽니다. 대화에서 생성한 PDF 등은 원래 대화에서 다운로드하세요.",
@@ -33,7 +34,8 @@
       "scheduled": "리서치 지시와 실행 주기를 입력하고 저장하세요. 실행하려면 로컬 스케줄러가 활성화되어 있어야 하며, 결과 전달에는 채널 설정이 필요합니다.",
       "runtime": "먼저 설정 또는 보유 자산 페이지에서 브로커를 연결하세요. 사용 가능한 거래 작업은 브로커 기능과 사용자의 승인에 따라 달라집니다.",
       "settings": "먼저 모델을 설정하세요. 필요에 따라 데이터 소스나 브로커 연결을 추가하면 됩니다. 공개 시장 리서치에는 브로커 계좌가 필요하지 않습니다.",
-      "pixelOffice": "리서치 작업을 계획하고 배정합니다. 배정만으로 실행되지는 않으며, 직급은 거래 권한을 부여하지 않는 표시에 불과합니다."
+      "pixelOffice": "리서치 작업을 계획하고 배정합니다. 배정만으로 실행되지는 않으며, 직급은 거래 권한을 부여하지 않는 표시에 불과합니다.",
+      "paperTrading": "완료된 일봉만 결산합니다. 전략은 이전 날짜의 데이터만 읽고 실행일 종가로 체결됩니다. 정규장 종료 후 30분을 기다리세요. 자동 실행은 예약되지 않습니다."
     }
   },
   "layout": {
@@ -64,7 +66,8 @@
     "mainNavigation": "주 내비게이션",
     "about": "소개",
     "sessionsLoadFailed": "대화를 불러올 수 없습니다.",
-    "pixelOffice": "픽셀 오피스"
+    "pixelOffice": "픽셀 오피스",
+    "paperTrading": "모의 거래"
   },
   "runtime": {
     "monitorBadge": "거래 모니터",
@@ -238,16 +241,16 @@
     "deliveryChannelPlaceholder": "telegram, feishu … (비우면 앱 안에만 남습니다)",
     "deliveryTargetLabel": "채널 대상",
     "deliveryTargetPlaceholder": "채팅 / 그룹 / 사용자 ID",
-    "deliveryFormatLabel": "Email report format",
-    "deliveryFormatDefault": "Channel default (plain text)",
-    "deliveryFormatHtml": "HTML email",
-    "deliveryFormatPdf": "PDF attachment",
+    "deliveryFormatLabel": "이메일 보고서 형식",
+    "deliveryFormatDefault": "채널 기본값(일반 텍스트)",
+    "deliveryFormatHtml": "HTML 이메일",
+    "deliveryFormatPdf": "PDF 첨부 파일",
     "proposalPdfProtection": "PDF 비밀번호 보호",
     "proposalPdfProtectionOn": "켜짐",
     "proposalPdfProtectionOff": "꺼짐",
-    "deliveryFormatDefaultHint": "Keeps the existing plain-text delivery behavior.",
-    "deliveryFormatHtmlHint": "Shows the full report as sanitized HTML in the email body.",
-    "deliveryFormatPdfHint": "Attaches the full report as PDF and keeps only a short notice in the body.",
+    "deliveryFormatDefaultHint": "기존 일반 텍스트 전송 방식을 유지합니다.",
+    "deliveryFormatHtmlHint": "전체 보고서를 정제된 HTML로 이메일 본문에 표시합니다.",
+    "deliveryFormatPdfHint": "전체 보고서를 PDF로 첨부하고 본문에는 짧은 안내만 남깁니다.",
     "deliveryHint": "기본은 꺼짐입니다. 브리핑은 예약 시점이 아니라 실행이 **끝난 뒤** 전달됩니다.",
     "deliveryTargetRequired": "해당 채널의 대상을 지정하거나 채널을 비워 주세요.",
     "delivery_none": "다음 실행이 끝나면 {{channel}}(으)로 전달합니다",
@@ -2203,6 +2206,15 @@
       "failed": "읽지 못했습니다 — 합계에 포함되지 않음",
       "lastSuccess": "마지막으로 성공한 읽기 {{time}}",
       "noSuccess": "아직 성공한 읽기가 없습니다",
+      "cashDetails": "현금 및 융자",
+      "reportingCurrency": "보고 통화",
+      "financingLimit": "융자 한도",
+      "financingRemaining": "남은 융자 한도",
+      "cashAvailable": "사용 가능 현금",
+      "cashWithdrawable": "출금 가능 현금",
+      "cashFrozen": "동결 현금",
+      "cashSettling": "결제 대기 현금",
+      "binanceRestrictedLocation": "Binance가 이 읽기를 차단했습니다(HTTP 451). 현재 네트워크 위치가 제한되어 있습니다. 해당 지역에서 Binance를 사용할 수 있는지 확인하고 지원되는 공식 API 엔드포인트를 사용하세요.",
       "reconnect": "다시 연결",
       "retryRead": "다시 읽기"
     },
@@ -2487,5 +2499,49 @@
     "limitsNote": "결정마다 새 대화를 사용합니다. 응답 후 사용량을 확인하므로 해당 응답만큼 초과할 수 있습니다. 사용량 누락이나 예산 초과 시 기존 중지 스위치가 작동합니다.",
     "pricesNote": "요금은 운영자 추정값입니다. 입력/캐시 쓰기의 가장 높은 요금을 사용하세요. 캐시 할인과 보조 모델 호출은 추정에 포함되지 않습니다.",
     "stopToEdit": "설정을 변경하기 전에 실행기를 중지하세요."
+  },
+  "paper": {
+    "title": "모의 거래",
+    "description": "가상 자금으로 일별 거래를 테스트합니다. 증권사에 주문을 보내지 않습니다. 현금 배당을 제외하므로 총수익이 아닙니다.",
+    "accounts": "계좌",
+    "newAccount": "모의 계좌 만들기",
+    "eligible": "{{date}}부터 시작 가능하며 휴장일에는 다음 거래일을 기다립니다.",
+    "cash": "현금",
+    "pending": "첫 결산 대기",
+    "label": "계좌 이름",
+    "market": "시장",
+    "start": "시작",
+    "today": "오늘",
+    "nextSession": "다음 거래일",
+    "initialPositions": "초기 보유 종목 (수량 및 평균 단가)",
+    "symbol": "종목 (예: AAPL.US)",
+    "quantity": "수량",
+    "cost": "평균 단가",
+    "remove": "삭제",
+    "addPosition": "보유 종목 추가",
+    "create": "계좌 생성",
+    "working": "처리 중…",
+    "advance": "일별 거래 결산",
+    "executionNote": "완료된 일봉만 결산합니다. 전략은 이전 날짜의 데이터만 읽고 실행일 종가로 체결됩니다. 정규장 종료 후 30분을 기다리세요. 자동 실행은 예약되지 않습니다.",
+    "date": "실행 날짜",
+    "mode": "입력 방식",
+    "orders": "직접 주문",
+    "strategy": "전략 파일",
+    "strategyPath": "런타임 strategies 폴더 내 경로",
+    "side": "매매 구분",
+    "buy": "매수",
+    "sell": "매도",
+    "addOrder": "주문 추가",
+    "emptyOrders": "주문이 없으면 평가만 합니다. 시장가 주문은 일별 종가에 체결되며 장중 실행은 모사하지 않습니다.",
+    "saved": "장부를 저장했습니다.",
+    "notSaved": "장부는 변경되지 않았습니다. 결과를 확인한 후 다시 시도하세요.",
+    "result": "실행 결과",
+    "price": "가격",
+    "fee": "수수료",
+    "history": "계좌 가치 기록",
+    "nav": "순자산 가치",
+    "us": "미국 주식 · USD",
+    "hk": "홍콩 주식 · HKD",
+    "cn_a": "중국 A주 · CNY"
   }
 }

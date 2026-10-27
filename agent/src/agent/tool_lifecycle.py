@@ -22,7 +22,7 @@ from src.agent.tuning import _heartbeat_interval_s, _override, _tool_timeout_sec
 from src.agent.tool_results import (
     _archive_backtest_result, _failure_code, _is_tool_success, _normalize_tool_run_dir,
 )
-from src.config.limits import truncate_tool_result
+from src.agent.result_artifacts import deliver_tool_result
 from src.tools.redaction import redact_payload, redact_tool_result
 
 logger = logging.getLogger("src.agent.loop")
@@ -183,7 +183,7 @@ class ToolCallLifecycle:
                 restored = _replay_context_result(cached)
                 messages.append(
                     context.format_tool_result(
-                        tc.id, tc.name, truncate_tool_result(restored)
+                        tc.id, tc.name, deliver_tool_result(restored, self.memory.run_dir, self.registry)
                     )
                 )
                 self._readonly_replay_visibility_pending.add(tc.id)
@@ -258,7 +258,7 @@ class ToolCallLifecycle:
                 cache_key = self._identical_call_key(tc.name, tc.arguments)
                 if cache_key is not None and cache_key in self._called_identical:
                     cached = self._called_identical[cache_key]
-                    messages.append(context.format_tool_result(tc.id, tc.name, cached))
+                    messages.append(context.format_tool_result(tc.id, tc.name, deliver_tool_result(cached, self.memory.run_dir, self.registry)))
                     self._successful_call_keys[tc.id] = cache_key
                     self._called_ok.add(cache_key)
                     trace.write({
@@ -819,6 +819,9 @@ class ToolCallLifecycle:
             iteration: Current iteration.
             update_memory: Whether this call reached the tool implementation.
         """
+        # Scrub before caching, truncation and model context, not just the
+        # downstream trace/event preview. Shell stdout may hold credentials.
+        result = redact_tool_result(result)
         if update_memory:
             self._update_memory(tc.name)
 
@@ -895,7 +898,7 @@ class ToolCallLifecycle:
                 self._readonly_replay_protected.clear()
 
         status = "ok" if success else "error"
-        truncated = truncate_tool_result(result)
+        truncated = deliver_tool_result(result, self.memory.run_dir, self.registry)
         messages.append(context.format_tool_result(tc.id, tc.name, truncated))
 
         # One redaction feeds every subscriber below: the persisted trace

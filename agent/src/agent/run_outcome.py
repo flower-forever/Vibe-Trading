@@ -2,7 +2,7 @@
 
 Extracted from the tail of ``AgentLoop._run_bound`` (issue #1624, roadmap
 item 3: split ``loop.py`` along its existing seams). This module owns the
-decision ladder that maps how a run ended — stall, cancellation,
+decision ladder that maps how a run ended — stall, cancellation, token budget,
 no-progress, content-filter circuit breaker, success, empty model
 response, max iterations — onto ``(status, reason)`` plus the ``end``
 trace event and the caller-facing result dict.
@@ -12,8 +12,8 @@ side-effectful calls (``state_store.mark_*``, ``trace.write/close``) stay
 in ``loop.py`` right after ``resolve_final_status`` returns, in the same
 order they executed before the extraction.
 
-Behavior is unchanged: every branch condition and message string moved
-verbatim.
+The extraction preserved the existing branch conditions and messages. Token
+budget exhaustion now precedes success so partial artifacts cannot hide it.
 
 One deliberate semantic delta, flagged in review: pre-extraction the
 ``degraded`` flag on the end event and result dict keyed off
@@ -74,6 +74,9 @@ class OutcomeInputs:
             empty-response failure message.
         max_iterations: The run's iteration budget (for the failure
             message).
+        budget_reason: An exhausted research-goal token budget, if any.
+        answer_released: Whether a final answer was released to the user.
+            One that crossed the budget is a degraded success, not a failure.
     """
 
     stall_reason: Optional[str]
@@ -89,6 +92,8 @@ class OutcomeInputs:
     empty_response_provider: str
     empty_response_model: str
     max_iterations: int
+    budget_reason: Optional[str] = None
+    answer_released: bool = False
 
 
 @dataclass
@@ -117,8 +122,8 @@ class RunOutcome:
 def resolve_final_status(inputs: OutcomeInputs) -> RunOutcome:
     """Run the terminal-status decision ladder.
 
-    The branch order is load-bearing and unchanged from the pre-extraction
-    ``_run_bound`` tail: stall (already recorded) → cancelled → no
+    The branch order is load-bearing: stall (already recorded) → cancelled →
+    exhausted token budget → no
     progress → content-filter breaker → success → empty response → max
     iterations.
     """
@@ -128,6 +133,8 @@ def resolve_final_status(inputs: OutcomeInputs) -> RunOutcome:
         return RunOutcome("failed", inputs.stall_reason, None, False)
     if inputs.cancelled:
         return RunOutcome("cancelled", "cancelled by user", "cancelled", False)
+    if inputs.budget_reason is not None and not inputs.answer_released:
+        return RunOutcome("failed", inputs.budget_reason, "failure", False)
     if inputs.no_progress_reason is not None:
         return RunOutcome("failed", inputs.no_progress_reason, "failure", False)
     if inputs.content_filter_circuit_breaker:
@@ -138,6 +145,9 @@ def resolve_final_status(inputs: OutcomeInputs) -> RunOutcome:
         )
         return RunOutcome("failed", reason, "failure", False)
     if inputs.has_output:
+        if inputs.budget_reason is not None:
+            # The answer that crossed a goal's token budget was released.
+            return RunOutcome("success", inputs.budget_reason, "success", True)
         if inputs.released_fallback:
             reason = inputs.released_fallback_reason or (
                 "final answer degraded to the deterministic fallback after "
