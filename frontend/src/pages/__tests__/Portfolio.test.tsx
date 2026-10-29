@@ -138,6 +138,16 @@ const portfolioConfiguration = {
 };
 
 describe("Portfolio page", () => {
+  it("shows the quote timestamp and pricing failure beside the position", async () => {
+    mocked.getPortfolio.mockResolvedValue({ status: "ok", snapshot: {
+      ...snapshot,
+      positions: [{ ...snapshot.positions[0], price_as_of: "2026-10-12T21:00:00Z", price_error: "quote symbol does not match" }],
+    } });
+    render(<Portfolio />);
+    expect(await screen.findByText(/Quote as of/)).toBeInTheDocument();
+    expect(screen.getByText("quote symbol does not match")).toBeInTheDocument();
+  });
+
   it("shows reported cash legs without replacing missing values or netting currencies", async () => {
     mocked.getPortfolio.mockResolvedValue({ status: "ok", snapshot: {
       ...snapshot,

@@ -138,7 +138,7 @@ def test_final_without_content_is_fed_back_and_retried(fake_cli) -> None:
 
 def test_native_attempt_is_fed_back_with_the_original_prompt(fake_cli) -> None:
     first = payload({"action": "final", "content": "No such tool available"})
-    first["num_turns"] = 2
+    first["num_turns"] = 3
     set_replies, calls = fake_cli
     set_replies(
         {"payload": first},
@@ -187,7 +187,7 @@ def test_permission_denials_are_fed_back_instead_of_accepting_final(fake_cli) ->
 
 def test_repeated_native_attempts_exhaust_the_existing_retry_budget(fake_cli) -> None:
     reply = payload({"action": "final", "content": "tools are broken"})
-    reply["num_turns"] = 2
+    reply["num_turns"] = 3
     set_replies, calls = fake_cli
     set_replies({"payload": reply})
 
@@ -221,6 +221,23 @@ def test_valid_structured_calls_are_not_retried_after_native_metadata(fake_cli) 
 def test_single_turn_final_answer_does_not_trigger_native_retry(fake_cli) -> None:
     reply = payload({"action": "final", "content": "done"})
     reply["num_turns"] = 1
+    reply["permission_denials"] = []
+    set_replies, calls = fake_cli
+    set_replies({"payload": reply})
+
+    message = claude_cli.ClaudeCliLLM(tools=[tool("get_market_data")]).invoke(
+        [{"role": "user", "content": "x"}]
+    )
+
+    assert message.content == "done"
+    assert len(calls()) == 1
+
+
+def test_structured_output_turn_final_answer_does_not_trigger_native_retry(
+    fake_cli,
+) -> None:
+    reply = payload({"action": "final", "content": "done"})
+    reply["num_turns"] = 2
     reply["permission_denials"] = []
     set_replies, calls = fake_cli
     set_replies({"payload": reply})

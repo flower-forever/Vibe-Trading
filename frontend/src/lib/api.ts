@@ -148,6 +148,7 @@ export interface PortfolioPosition {
   priced: boolean;
   updated_at: string;
   pricing_basis?: string;
+  price_as_of?: string;
   price_error?: string;
 }
 
@@ -324,6 +325,11 @@ export interface ConnectorOnboarding {
   secret_storage: "os_keyring" | null;
 }
 
+export interface SocketEndpoint {
+  host: string;
+  port: number;
+}
+
 export interface LocalConnection {
   portfolio_eligible?: boolean;
   id: string;
@@ -333,6 +339,9 @@ export interface LocalConnection {
   account_ref: string;
   /** True when this connection reads nothing until an account is selected. */
   account_selection_required: boolean;
+  endpoint?: SocketEndpoint | null;
+  effective_endpoint?: SocketEndpoint;
+  endpoint_error?: string;
   connector: string;
   environment: "paper" | "live";
   transport: "local_tws" | "remote_mcp" | "broker_sdk" | "local_plugin";
@@ -462,11 +471,68 @@ function appendQueryParam(url: string, key: string, value: string): string {
   return `${url}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
 }
 
+export interface ResearchArtifactRevision {
+  revision_id: string;
+  artifact_id: string;
+  revision_number: number;
+  previous_revision_id: string | null;
+  subject: string;
+  universe: string;
+  content: string;
+  content_hash: string;
+  provenance_hash: string;
+  identity_hash: string;
+  data_as_of: string;
+  created_at: string;
+  evidence: Array<Record<string, unknown>>;
+  evidence_missing: boolean;
+  verification_status: string;
+  completeness: string;
+  hypothesis_id: string | null;
+  goal_id: string | null;
+  session_id: string | null;
+  run_id: string | null;
+}
+
+export interface ResearchArtifactSaveResult {
+  revision: ResearchArtifactRevision;
+  created: boolean;
+}
+
+export interface SaveResearchArtifactRequest {
+  artifact_id?: string;
+  subject?: string;
+  universe?: string;
+  content: string;
+  data_as_of: string;
+  evidence?: Array<Record<string, unknown>>;
+  verification_status?: string;
+  completeness?: string;
+  hypothesis_id?: string;
+  goal_id?: string;
+  session_id?: string;
+  run_id?: string;
+}
+
 export const api = {
   getPixelOffice: () => request<OfficeSnapshot>("/api/pixel-office"),
   updatePixelOffice: (action: "create" | "assign" | "complete" | "rank", arguments_: Record<string, unknown>) =>
     request<OfficeSnapshot>("/api/pixel-office/actions", { method: "POST", body: JSON.stringify({ action, arguments: arguments_ }) }),
   uploadFile,
+  searchResearchArtifacts: (params: { query?: string; subject?: string; universe?: string; hypothesis_id?: string; goal_id?: string; session_id?: string; run_id?: string; limit?: number } = {}) => {
+    const search = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") search.set(key, String(value));
+    });
+    const suffix = search.toString();
+    return request<{ count: number; artifacts: ResearchArtifactRevision[] }>(`/api/research-artifacts${suffix ? `?${suffix}` : ""}`);
+  },
+  getResearchArtifact: (artifactId: string) =>
+    request<{ artifact: ResearchArtifactRevision; revisions: ResearchArtifactRevision[] }>(`/api/research-artifacts/${encodeURIComponent(artifactId)}`),
+  getResearchRevision: (revisionId: string) =>
+    request<{ revision: ResearchArtifactRevision }>(`/api/research-artifacts/revision/${encodeURIComponent(revisionId)}`),
+  saveResearchArtifact: (body: SaveResearchArtifactRequest) =>
+    request<ResearchArtifactSaveResult>("/api/research-artifacts", { method: "POST", body: JSON.stringify(body) }),
   getCorrelationAnalysis: (codes: string, days: number, method: "pearson" | "spearman", includeRegime: boolean, signal?: AbortSignal) =>
     request<CorrelationAnalysisResponse>(`/correlation/analysis?${new URLSearchParams({ codes, days: String(days), method, include_regime: String(includeRegime) })}`, { signal }),
   getCorrelation: (codes: string, days: number, method: "pearson" | "spearman") =>
@@ -502,6 +568,11 @@ export const api = {
     request<{ status: string; credential_status: Record<string, boolean> }>(
       `/api/connections/${encodeURIComponent(connectionId)}/credentials`,
       { method: "POST", body: JSON.stringify({ values }) },
+    ),
+  saveConnectionEndpoint: (connectionId: string, endpoint: SocketEndpoint) =>
+    request<{ status: string }>(
+      `/api/connections/${encodeURIComponent(connectionId)}/endpoint`,
+      { method: "PUT", body: JSON.stringify(endpoint) },
     ),
   checkConnection: (connectionId: string) =>
     request<{ status: string; connection_id: string; report: Record<string, unknown> }>(
@@ -991,6 +1062,8 @@ export interface LLMModelsResponse {
     | null;
   /** Model id -> reasoning effort levels it accepts; empty means none. */
   effort_levels?: Record<string, string[]> | null;
+  model_labels?: Record<string, string> | null;
+  default_effort_levels?: Record<string, string> | null;
 }
 
 export interface SourceOrderEntry {

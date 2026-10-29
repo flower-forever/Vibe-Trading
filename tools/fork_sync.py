@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -13,15 +14,19 @@ DESTINATION = "flower-forever/Vibe-Trading"
 WORKFLOW = "fork-ci.yml"
 
 
-def run(args: list[str], cwd: Path, *, check: bool = True, data: str | None = None):
-    result = subprocess.run(args, cwd=cwd, input=data, capture_output=True, text=True, encoding="utf-8")
+def run(args: list[str], cwd: Path, *, check: bool = True, data: str | None = None, use_push_token: bool = False):
+    env = os.environ.copy()
+    push_token = env.pop("SYNC_PUSH_TOKEN", "")
+    if use_push_token and push_token:
+        env["GH_TOKEN"] = push_token
+    result = subprocess.run(args, cwd=cwd, input=data, capture_output=True, text=True, encoding="utf-8", env=env)
     if check and result.returncode:
         raise RuntimeError(f"{args[0]} failed: {result.stderr.strip() or result.stdout.strip()}")
     return result
 
 
 def git(root: Path, *args: str, check: bool = True):
-    return run(["git", *args], root, check=check)
+    return run(["git", *args], root, check=check, use_push_token=bool(args and args[0] == "push"))
 
 
 def ancestor(root: Path, older: str, newer: str) -> bool:

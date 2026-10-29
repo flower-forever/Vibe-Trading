@@ -27,6 +27,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -40,6 +41,20 @@ _RUNTIME_SUBDIR = "runtime"
 #: Schema version of the persisted store envelope. Bump on breaking changes so
 #: a future loader can branch instead of mis-parsing an old layout.
 _SCHEMA_VERSION = 1
+_TRANSIENT_WINERRORS = (5, 32)
+_REPLACE_BACKOFF = (0.025, 0.05, 0.1, 0.2, 0.4)
+
+
+def _replace_with_retry(tmp: Path, target: Path) -> None:
+    """Retry transient Windows sharing errors without weakening atomic replace."""
+    for attempt in range(len(_REPLACE_BACKOFF) + 1):
+        try:
+            os.replace(tmp, target)
+            return
+        except OSError as exc:
+            if getattr(exc, "winerror", None) not in _TRANSIENT_WINERRORS or attempt == len(_REPLACE_BACKOFF):
+                raise
+            time.sleep(_REPLACE_BACKOFF[attempt])
 
 
 class CorruptJobStoreError(RuntimeError):
@@ -157,7 +172,7 @@ class JobStore:
                         raise OSError("job store write made no progress")
                     remaining = remaining[written:]
                 os.fsync(handle.fileno())
-            os.replace(tmp, target)
+            _replace_with_retry(tmp, target)
             self._fsync_dir(target.parent)
         finally:
             tmp.unlink(missing_ok=True)

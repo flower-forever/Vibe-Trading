@@ -1245,6 +1245,16 @@ def _run_agent(
         else:
             console.print(f"[yellow]WARNING:[/yellow] {msg}")
 
+    # One owner for the whole CLI run: background results stay with the
+    # conversation that started them, and a bare run gets a private owner
+    # instead of a view shared with every other run in the process.
+    from src.tools.background_tools import BackgroundScope, get_background_manager
+
+    background_scope = BackgroundScope(
+        owner_id=f"session:{session_id}" if session_id else f"cli:{uuid.uuid4().hex}"
+    )
+    background = get_background_manager().for_scope(background_scope)
+
     agent = AgentLoop(
         registry=build_registry(
             persistent_memory=pm,
@@ -1252,11 +1262,14 @@ def _run_agent(
             agent_config=agent_config,
             session_id=session_id or None,
             warn_callback=_mcp_warn,
+            background_manager=background,
+            background_scope=background_scope,
         ),
         llm=ChatLLM(),
         event_callback=on_event,
         max_iterations=max_iter,
         persistent_memory=pm,
+        background_manager=background,
     )
     if run_dir_override:
         agent.memory.run_dir = run_dir_override
@@ -4546,6 +4559,8 @@ def cmd_connector_setup(
     label: str | None = None,
     skip_check: bool = False,
     account: str | None = None,
+    host: str | None = None,
+    port: int | None = None,
 ) -> int:
     """Create a local read-only connection and collect secrets outside AI prompts.
 
@@ -4557,10 +4572,14 @@ def cmd_connector_setup(
             profile, the account selection that needs the broker).
         account: Account to scope an account-scoped connection to; without it
             the user picks from the broker's account list.
+        host: Optional connection-specific IBKR/Futu gateway host; requires port.
+        port: Optional connection-specific gateway port; requires host.
 
     Returns:
         The process exit code.
     """
+    from dataclasses import replace
+
     from src.trading.connections import (
         ConnectionStore,
         credential_field_catalog,
@@ -4574,9 +4593,13 @@ def cmd_connector_setup(
         profile = profile_by_id(profile_id)
         if not is_readonly_connection_profile(profile):
             raise ValueError(f"{profile.id} is not a read-only connection profile")
+        if (host is None) != (port is None):
+            raise ValueError("gateway endpoint requires both --host and --port")
         local_id = str(connection_id or f"{profile.connector}-{profile.environment}").strip().lower()
         store = ConnectionStore()
         connection = store.ensure(local_id, profile.id, label or profile.label)
+        if host is not None:
+            connection = store.save(replace(connection, endpoint={"host": host, "port": port}))
         fields = credential_field_catalog(profile.id)
         names = [str(field["name"]) for field in fields]
         status = store.credentials.status(connection.id, names) if names else {}
@@ -5423,6 +5446,8 @@ def _dispatch_connector(args: argparse.Namespace) -> int:
             label=args.label,
             skip_check=args.skip_check,
             account=args.account,
+            host=args.host,
+            port=args.port,
         )
     if sub == "select-account":
         return cmd_connector_select_account(
@@ -5778,6 +5803,12 @@ def _build_parser() -> argparse.ArgumentParser:
     connector_setup.add_argument("--label", default=None)
     connector_setup.add_argument("--skip-check", action="store_true")
     connector_setup.add_argument(
+        "--host", default=None, help="Connection-specific IBKR/Futu gateway host (requires --port)"
+    )
+    connector_setup.add_argument(
+        "--port", type=int, default=None, help="Connection-specific gateway port (requires --host)"
+    )
+    connector_setup.add_argument(
         "--account",
         default=None,
         help="Account to scope an account-scoped connection (Robinhood) to; prompts when omitted",
@@ -5858,6 +5889,10 @@ def _build_parser() -> argparse.ArgumentParser:
     # Hypothesis Registry subcommands
     from src.hypotheses.cli_handlers import add_subparser as _add_hypothesis_subparser
     _add_hypothesis_subparser(subparsers)
+
+    # Versioned research-artifact index
+    from src.research_artifacts.cli_handlers import add_subparser as _add_research_artifact_subparser
+    _add_research_artifact_subparser(subparsers)
 
     # Scheduled-research playbook templates (list / show / create)
     from cli.commands.research_playbook import add_subparser as _add_playbook_subparser
@@ -6775,6 +6810,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "hypothesis":
         from src.hypotheses.cli_handlers import dispatch as _hyp_dispatch
         return _coerce_exit_code(_hyp_dispatch(args))
+    if args.command == "research-artifact":
+        from src.research_artifacts.cli_handlers import dispatch as _research_artifact_dispatch
+        return _coerce_exit_code(_research_artifact_dispatch(args))
     if args.command == "playbook":
         from cli.commands.research_playbook import dispatch as _playbook_dispatch
         return _coerce_exit_code(_playbook_dispatch(args))

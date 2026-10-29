@@ -14,7 +14,7 @@ import json
 import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import Barrier
+from threading import Barrier, local
 
 import pytest
 
@@ -80,13 +80,17 @@ def test_save_completes_short_writes(live_runtime, monkeypatch) -> None:
     assert [job.id for job in store.load()] == ["full-payload"]
 
 
-def test_concurrent_saves_use_distinct_temporary_files(live_runtime, monkeypatch) -> None:
+@pytest.mark.parametrize("_iteration", range(5))
+def test_concurrent_saves_use_distinct_temporary_files(live_runtime, monkeypatch, _iteration) -> None:
     store = JobStore()
     barrier = Barrier(2)
+    attempt = local()
     real_replace = os.replace
 
     def replace(src, dst):
-        barrier.wait(timeout=2)
+        if not getattr(attempt, "synchronized", False):
+            attempt.synchronized = True
+            barrier.wait(timeout=2)
         real_replace(src, dst)
 
     monkeypatch.setattr("src.live.runtime.jobstore.os.replace", replace)
@@ -95,6 +99,66 @@ def test_concurrent_saves_use_distinct_temporary_files(live_runtime, monkeypatch
         for result in results:
             result.result(timeout=3)
     assert store.load()[0].id in {"a", "b"}
+    assert list(runtime_dir().glob(".*tmp")) == []
+
+
+def test_save_retries_transient_windows_replace_failure(live_runtime, monkeypatch) -> None:
+    store = JobStore()
+    store.save([_job("old")])
+    real_replace = os.replace
+    attempts = []
+
+    def replace(src, dst):
+        attempts.append((src, dst))
+        if len(attempts) < 3:
+            exc = PermissionError("temporary sharing conflict")
+            exc.winerror = 32
+            raise exc
+        real_replace(src, dst)
+
+    monkeypatch.setattr("src.live.runtime.jobstore.os.replace", replace)
+    monkeypatch.setattr("src.live.runtime.jobstore.time.sleep", lambda _: None)
+    store.save([_job("new")])
+    assert len(attempts) == 3
+    assert [job.id for job in store.load()] == ["new"]
+    assert list(runtime_dir().glob(".*tmp")) == []
+
+
+@pytest.mark.parametrize("winerror", [5, 32])
+def test_save_preserves_old_store_when_windows_retry_budget_is_exhausted(live_runtime, monkeypatch, winerror) -> None:
+    store = JobStore()
+    store.save([_job("old")])
+    attempts = []
+
+    def replace(src, dst):
+        attempts.append((src, dst))
+        exc = PermissionError("persistent sharing conflict")
+        exc.winerror = winerror
+        raise exc
+
+    monkeypatch.setattr("src.live.runtime.jobstore.os.replace", replace)
+    monkeypatch.setattr("src.live.runtime.jobstore.time.sleep", lambda _: None)
+    with pytest.raises(PermissionError):
+        store.save([_job("new")])
+    assert 1 < len(attempts) <= 10
+    assert [job.id for job in store.load()] == ["old"]
+    assert list(runtime_dir().glob(".*tmp")) == []
+
+
+def test_save_does_not_retry_other_permission_errors(live_runtime, monkeypatch) -> None:
+    store = JobStore()
+    store.save([_job("old")])
+    attempts = []
+
+    def replace(src, dst):
+        attempts.append((src, dst))
+        raise PermissionError("permanent denial")
+
+    monkeypatch.setattr("src.live.runtime.jobstore.os.replace", replace)
+    with pytest.raises(PermissionError):
+        store.save([_job("new")])
+    assert len(attempts) == 1
+    assert [job.id for job in store.load()] == ["old"]
     assert list(runtime_dir().glob(".*tmp")) == []
 
 

@@ -170,7 +170,7 @@ def _explicit_sign(text: str) -> int:
 def _is_percent_field(name: str) -> bool:
     """Whether a field name says its value is already in percentage points."""
     lowered = name.lower()
-    return "percent" in lowered or "pct" in lowered or lowered.endswith("%")
+    return name == "document.ratio" or "percent" in lowered or "pct" in lowered or lowered.endswith("%")
 
 
 def _is_plain_count(figure: Figure) -> bool:
@@ -881,9 +881,19 @@ class _PolicyMixin:
                 record
                 for record in records
                 if not _is_price_kind(record) and not _is_metadata_count_leaf(record.field)
+                and (record.source != "document" or record.field == "document.ratio")
             ]
         elif figure is not None and figure.currency:
-            records = [record for record in records if _is_price_kind(record)]
+            # Documents often put the unit in a table header. An explicitly
+            # referenced numeric cell can be restated with that unit; it is
+            # still matched to this exact source and written precision. Do not
+            # promote it to a price globally or admit ratios as amounts. Known
+            # currency identity is checked by _check_observed below.
+            records = [
+                record for record in records
+                if _is_price_kind(record)
+                or (record.source == "document" and record.field == "document.figure")
+            ]
             metrics = []
         return records, metrics
 
@@ -1977,9 +1987,21 @@ class _PolicyMixin:
             anchors.extend(
                 float(record.value)
                 for record in scoped[0]
-                if (not money or _is_price_kind(record))
+                if (
+                    not money or _is_price_kind(record)
+                    or (record.source == "document" and record.field == "document.figure")
+                )
                 and (currency_code is None or record.currency == currency_code)
                 and not (unattributed and record.symbol)
+            )
+            # A literal percent in a formula is parsed as its fraction, while
+            # document.ratio records retain the percent as printed. This
+            # conversion belongs only to the explicitly named document scope.
+            anchors.extend(
+                float(record.value) / 100.0
+                for record in scoped[0]
+                if record.source == "document" and record.field == "document.ratio"
+                and not money and currency_code is None
             )
             if not money and not unattributed:
                 anchors.extend(scoped[1])
@@ -2011,11 +2033,12 @@ class _PolicyMixin:
         # The result's unit follows the evidence the operands anchored to:
         # percent-named fields already carry points (#1820), an explicit
         # trailing *100 was normalized above, anything else is a fraction.
-        points = (
-            percent
-            and self._operands_read_as_points(
-                operands, symbol, records, scalar_parameters
-            )
+        points = percent and self._operands_read_as_points(
+            operands,
+            symbol,
+            records,
+            scalar_parameters,
+            referenced=scoped[0] if scoped is not None else (),
         )
         if points:
             # Convert the inputs before evaluating: two point-valued inputs
@@ -2041,6 +2064,7 @@ class _PolicyMixin:
         symbol: str | None,
         records: Sequence[EvidenceRecord],
         scalar_parameters: Sequence[float],
+        referenced: Sequence[EvidenceRecord] = (),
     ) -> bool:
         """Whether every data operand anchored only to percent-named fields.
 
@@ -2049,7 +2073,9 @@ class _PolicyMixin:
         must meet the result directly, not ``result * 100``. Conservative by
         construction: an operand whose magnitude also appears under a
         non-percent field makes the unit undecidable, and the caller keeps
-        the fraction reading.
+        the fraction reading. ``referenced`` are the records the declaration's
+        own ref resolved to: a field the claim names counts as an anchor of
+        the operand's unit even when its tool is not a market-data one.
         """
         data = [
             operand
@@ -2077,6 +2103,11 @@ class _PolicyMixin:
             and record.value is not None
             and _metric_kind_for_path(record.field) is not None
             and (not symbol or not record.symbol or record.symbol == symbol)
+        ]
+        candidates += [
+            record
+            for record in referenced
+            if record.status == "observed" and record.value is not None
         ]
         for operand in data:
             saw_percent = saw_plain = False
@@ -2109,13 +2140,14 @@ class _PolicyMixin:
         ``(low − high) / high`` or as the drop, unless the prose wrote a sign.
         """
         # The normalized reading, so "0,666" is three decimals and "−5,13%" is signed.
-        half_unit = _written_half_unit(figure.digits or figure.text)
+        scale = float(figure.scale or 1.0)
+        half_unit = _written_half_unit(figure.digits or figure.text) * scale
         if figure.percent:
             targets = {result} if points else {result * 100.0}
         else:
             targets = {result, result * 100.0}
         sign = _explicit_sign(figure.sign or figure.text)
-        value = abs(figure.value)
+        value = abs(figure.value) * scale
         return any(
             abs(value - abs(target)) <= max(abs(target) * _TOLERANCE, half_unit, 1e-9)
             for target in targets
@@ -2579,10 +2611,17 @@ def _records_at(
     path = Path(token)
     if not path.is_absolute():
         path = root / path
+    normalized = Path(os.path.normpath(path))
     try:
-        relative = Path(os.path.normpath(path)).relative_to(root).as_posix()
+        relative = normalized.relative_to(root).as_posix()
     except ValueError:
-        return []
+        try:  # a backtest an earlier turn left sits beside the active run
+            relative = normalized.relative_to(root.parent).as_posix()
+        except ValueError:
+            # A prior run in another approved run root keeps an absolute
+            # artifact ref. This matches observed records only; it authorizes
+            # no filesystem read and admits no new evidence.
+            relative = normalized.as_posix()
     if relative in ("", "."):
         return []
 
