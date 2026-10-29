@@ -2,7 +2,7 @@ name: Check official updates
 
 on:
   schedule:
-    - cron: '17 2 * * *' # 10:17 Asia/Shanghai; GitHub schedules may be delayed.
+    - cron: '17 2 * * 0-6' # Daily 10:17 Asia/Shanghai; refresh GitHub's schedule actor.
   workflow_dispatch:
     inputs:
       rerun_ci:
@@ -39,6 +39,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          SYNC_PUSH_TOKEN: ${{ secrets.UPSTREAM_SYNC_TOKEN }}
           SYNC_REPOSITORY: ${{ github.repository }}
           RERUN_CI: ${{ inputs.rerun_ci || false }}
         run: |

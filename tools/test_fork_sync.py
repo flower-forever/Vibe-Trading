@@ -1,12 +1,46 @@
 """Exercise real Git merges and the GitHub PR / CI handoff without networking."""
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import pytest
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import fork_sync as sync
+
+
+def test_push_token_is_only_given_to_git_push(monkeypatch, tmp_path):
+    monkeypatch.setenv("GH_TOKEN", "api-token-placeholder")
+    monkeypatch.setenv("SYNC_PUSH_TOKEN", "push-token-placeholder")
+    environments = []
+
+    def fake_run(args, **kwargs):
+        environments.append((args, kwargs["env"]))
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sync.subprocess, "run", fake_run)
+    sync.git(tmp_path, "push", "origin", "HEAD:refs/heads/candidate")
+    sync.git(tmp_path, "fetch", "origin")
+    sync.run(["gh", "api", "repos/example/example"], tmp_path)
+    assert [env["GH_TOKEN"] for _, env in environments] == ["push-token-placeholder", "api-token-placeholder", "api-token-placeholder"]
+    assert all("SYNC_PUSH_TOKEN" not in env for _, env in environments)
+    assert sync.os.environ["GH_TOKEN"] == "api-token-placeholder"
+
+
+def test_push_without_dedicated_token_keeps_job_token(monkeypatch, tmp_path):
+    monkeypatch.setenv("GH_TOKEN", "api-token-placeholder")
+    monkeypatch.delenv("SYNC_PUSH_TOKEN", raising=False)
+    environments = []
+
+    def fake_run(args, **kwargs):
+        environments.append(kwargs["env"])
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(sync.subprocess, "run", fake_run)
+    sync.git(tmp_path, "push", "origin", "HEAD:refs/heads/candidate")
+    assert environments[0]["GH_TOKEN"] == "api-token-placeholder"
+    assert "SYNC_PUSH_TOKEN" not in environments[0]
 
 
 @pytest.fixture
@@ -183,10 +217,13 @@ def test_workflows_have_daily_and_manual_triggers_and_explicit_write_scopes():
     # PyYAML follows YAML 1.1: Actions' `on` key may become boolean True.
     updater_events = updater.get("on", updater.get(True))
     ci_events = ci.get("on", ci.get(True))
-    assert updater_events["schedule"][0]["cron"] == "17 2 * * *"
+    assert updater_events["schedule"][0]["cron"] == "17 2 * * 0-6"
     assert "workflow_dispatch" in updater_events
     assert updater["permissions"] == {"contents": "read"}
     assert updater["jobs"]["sync"]["permissions"] == {"contents": "write", "pull-requests": "write", "actions": "write"}
+    sync_step = next(step for step in updater["jobs"]["sync"]["steps"] if step.get("name") == "Prepare an integration PR and dispatch candidate CI")
+    assert sync_step["env"]["GH_TOKEN"] == "${{ github.token }}"
+    assert sync_step["env"]["SYNC_PUSH_TOKEN"] == "${{ secrets.UPSTREAM_SYNC_TOKEN }}"
     assert "workflow_dispatch" in ci_events
     assert ci_events["pull_request"]["branches"] == ["main"]
     assert ci["permissions"] == {"contents": "read"}
