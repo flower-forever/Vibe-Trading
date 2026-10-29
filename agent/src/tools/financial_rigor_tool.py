@@ -61,10 +61,18 @@ def _err(msg: str) -> str:
 
 
 def _exact(value: Any) -> Decimal:
-    """Convert any numeric to an exact Decimal, avoiding float binary traps."""
-    if isinstance(value, Decimal):
-        return value
-    return Decimal(str(value))
+    """Convert any numeric to an exact Decimal, avoiding float binary traps.
+
+    Raises:
+        ValueError: If ``value`` is a bool or is NaN / infinite, so a bad input
+            becomes an error envelope instead of an ``ok`` verdict.
+    """
+    if isinstance(value, bool):
+        raise ValueError("boolean is not a valid number")
+    number = value if isinstance(value, Decimal) else Decimal(str(value))
+    if not number.is_finite():
+        raise ValueError(f"number must be finite, got {value}")
+    return number
 
 
 def _fmt(value: float) -> str:
@@ -607,6 +615,16 @@ class FinancialRigorTool(BaseTool):
                 {"status": "error", "command": command, "error": str(exc)},
                 ensure_ascii=False,
             )
-        return json.dumps(
-            {"status": "ok", "command": command, **result}, ensure_ascii=False,
-        )
+        try:
+            # allow_nan=False: a finite input can still overflow float() to inf,
+            # and NaN / Infinity are not valid JSON.
+            return json.dumps(
+                {"status": "ok", "command": command, **result},
+                ensure_ascii=False, allow_nan=False,
+            )
+        except ValueError:
+            return json.dumps(
+                {"status": "error", "command": command,
+                 "error": "result is not representable as a finite number"},
+                ensure_ascii=False,
+            )

@@ -1002,7 +1002,7 @@ class PortfolioService:
                             f"Select a {broker} account for this connection before refreshing"
                         )
                     read_options["account"] = connection.account_ref
-            elif profile.transport in {"broker_sdk", "local_plugin"} and (
+            elif profile.transport in {"broker_sdk", "local_plugin", "local_tws"} and (
                 profile.transport == "local_plugin" or self._use_connection_scoped_reads
             ):
                 read_options["connection_id"] = connection.id
@@ -1080,16 +1080,32 @@ class PortfolioService:
                         exchange=normalized.get("exchange") or "SMART",
                         currency=normalized["currency"],
                         sec_type="STK",
+                        # Same rule as the reads above: a dashboard refresh
+                        # must never open a browser (reconnect_source() is the
+                        # one explicit interactive path).
+                        interactive_oauth=False,
                         **(
                             {"connection_id": connection.id}
                             if profile.transport == "local_plugin"
-                            or (profile.transport == "broker_sdk" and self._use_connection_scoped_quotes)
+                            or (profile.transport in {"broker_sdk", "local_tws"} and self._use_connection_scoped_quotes)
                             else {}
                         ),
                     )
                     price = _quote_price(quote)
                     normalized["market_price"] = _number(price) if price else None
                     normalized["price_currency"] = normalized["currency"]
+                    quote_view = quote.get("quote") or {}
+                    if broker == "robinhood":
+                        if quote_view.get("price_as_of"):
+                            normalized["price_as_of"] = quote_view["price_as_of"]
+                            normalized["pricing_basis"] = f"Robinhood quote as of {quote_view['price_as_of']}"
+                        if quote_view.get("price_error"):
+                            normalized["price_error"] = str(quote_view["price_error"])[:160]
+                    if isinstance(quote, dict) and quote.get("mapping_error"):
+                        # The broker answered but the reply did not match its
+                        # mapped shape: the row stays unpriced with the reason
+                        # on it, never silently.
+                        normalized["price_error"] = str(quote["mapping_error"])[:160]
             except Exception as exc:
                 normalized["price_error"] = str(exc)[:160]
             rows.append(normalized)

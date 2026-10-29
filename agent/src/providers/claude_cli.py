@@ -358,9 +358,10 @@ def _native_attempt_reason(payload: dict[str, Any]) -> str:
     if payload.get("permission_denials"):
         return "permission_denials is non-empty"
     turns = payload.get("num_turns")
-    if isinstance(turns, int) and turns > 1:
-        # Native tools are disabled for a one-decision request. Extra turns are
-        # the remaining signal when the CLI does not itemize the denied calls.
+    if isinstance(turns, int) and turns > 2:
+        # Ordinary structured responses can already report two turns. Only
+        # turns beyond the model-plus-StructuredOutput baseline are a fallback
+        # signal when the CLI does not itemize the denied calls.
         return f"num_turns={turns}"
     return ""
 

@@ -52,6 +52,19 @@
 
 > ⚠️ **安全警告：** X 账号 `VibeTrading_HKU`、Virtuals 项目 `101845` 及代币合约 `0x640BDBF77b6447E8b7DB7894cED84BD1c40571f4` 均非 Vibe-Trading 官方。我们从未发行或背书任何代币或 meme 币。请勿购买、连接钱包或签名。[详细说明](SECURITY.md#official-channels--impersonation)。
 
+- **2026-10-29** 🛠️ **研究复用与执行修复（尚未发版）**：保存带版本的研究资料，复用经 manifest 校验的历史回测产物（[#2079](https://github.com/HKUDS/Vibe-Trading/pull/2079)、[#2074](https://github.com/HKUDS/Vibe-Trading/pull/2074)）。
+  修复文档金额与单位、现货加密货币回测成本，恢复 Binance 挂单查询及 AKShare 兼容性（[#2050](https://github.com/HKUDS/Vibe-Trading/issues/2050)、[#2088](https://github.com/HKUDS/Vibe-Trading/issues/2088)、[#2090](https://github.com/HKUDS/Vibe-Trading/issues/2090)、[#2083](https://github.com/HKUDS/Vibe-Trading/pull/2083)）。
+  新增 Codex 模型发现、BYMA 规则、后台任务归属隔离及共享工具策略。模拟策略改用独立工作进程管道；Windows 原生复测仍待完成（[#2089](https://github.com/HKUDS/Vibe-Trading/issues/2089)、[CHANGELOG](CHANGELOG.md)）。
+
+- **2026-10-28** 🛠️ **模拟交易、组合与市场路由修复（尚未发版）**：新增 Phase 1 的与 K 线无关的模拟订单生命周期状态机，包含稳定 replay ID、终态撤单 fail-closed、日终结算、可选 partial fill 与确定性 snapshot（[#2066](https://github.com/HKUDS/Vibe-Trading/pull/2066)）。Robinhood 只读组合支持显式账户选择、报价映射和游标分页（[#2054](https://github.com/HKUDS/Vibe-Trading/pull/2054)，关闭 [#1428](https://github.com/HKUDS/Vibe-Trading/issues/1428)）。修复 Shadow Account 缓存失效与已声明的入场条件（[#2075](https://github.com/HKUDS/Vibe-Trading/pull/2075)、[#2073](https://github.com/HKUDS/Vibe-Trading/pull/2073)），将美股代码映射为富途格式并支持配置 IBKR/Futu gateway 地址（[#2076](https://github.com/HKUDS/Vibe-Trading/pull/2076)、[#1983](https://github.com/HKUDS/Vibe-Trading/pull/1983)）。同时修复结构化两轮最终答复、Qlib 因子语义以及数值与数字证据输入边界（[#2064](https://github.com/HKUDS/Vibe-Trading/pull/2064)、[#2069](https://github.com/HKUDS/Vibe-Trading/pull/2069)、[#2072](https://github.com/HKUDS/Vibe-Trading/pull/2072)、[#2053](https://github.com/HKUDS/Vibe-Trading/pull/2053)）。以上已进入 `main`，随下一版本发布。
+
+- **2026-10-27** 🛠️ **组合连接与研究正确性修复（尚未发版）**：通过网页或 CLI 保存各连接独立的 IBKR／富途网关地址，Agent 读取也使用该地址（[#1983](https://github.com/HKUDS/Vibe-Trading/pull/1983)）。Robinhood 组合读取支持账户选择、分页及股票报价；后续补修校验报价与请求代码一致，选择较新的常规／盘后成交并显示报价时间（[#2054](https://github.com/HKUDS/Vibe-Trading/pull/2054)，[011a555ed](https://github.com/HKUDS/Vibe-Trading/commit/011a555ed)）。恢复 Qlib ROC／CORD 公式，严格执行影子策略声明的入场边界（[#2069](https://github.com/HKUDS/Vibe-Trading/pull/2069), [#2073](https://github.com/HKUDS/Vibe-Trading/pull/2073)）。保留金融单位与数字证据，将币种声明限制在所属对象内，拒绝非有限数和布尔型金融输入，并接受普通两轮 `claude-cli` 结构化最终回答（[#2072](https://github.com/HKUDS/Vibe-Trading/pull/2072), [#2053](https://github.com/HKUDS/Vibe-Trading/pull/2053), [#2064](https://github.com/HKUDS/Vibe-Trading/pull/2064)）。以上已进入 `main`，随下一版本发布。
+
+<details>
+<summary>更早的新闻</summary>
+
+- **2026-10-26** 🛠️ **Agent 取消、数字核验与行情正确性修复（尚未发版）**：停止聊天时取消执行中的 Swarm，并忽略迟到的状态事件（[#2059](https://github.com/HKUDS/Vibe-Trading/pull/2059), [#2060](https://github.com/HKUDS/Vibe-Trading/pull/2060)）。恢复 Qlib BETA／RESI 的滚动 OLS 定义，允许符合条件的文档数字进入证据账本，并让 `claude-cli` 从原生工具调用被拒绝的情况中恢复（[#2062](https://github.com/HKUDS/Vibe-Trading/pull/2062), [#2058](https://github.com/HKUDS/Vibe-Trading/pull/2058), [#2048](https://github.com/HKUDS/Vibe-Trading/pull/2048)）。新增 alpha-bench 字段级数据可用性元信息，修复权重溢出、事件研究秩缩放和归因区间对齐（[#2057](https://github.com/HKUDS/Vibe-Trading/pull/2057), [#2046](https://github.com/HKUDS/Vibe-Trading/pull/2046), [#2000](https://github.com/HKUDS/Vibe-Trading/pull/2000), [#2044](https://github.com/HKUDS/Vibe-Trading/pull/2044)）。同时修复 Moonshot 推理强度路由、交易日志／期权输入校验、Stooq 分类股代码、筛选器小数字段及 ST 股票板块涨跌幅限制（[#2043](https://github.com/HKUDS/Vibe-Trading/pull/2043), [#2052](https://github.com/HKUDS/Vibe-Trading/pull/2052), [#2049](https://github.com/HKUDS/Vibe-Trading/pull/2049), [#2012](https://github.com/HKUDS/Vibe-Trading/pull/2012), [#1988](https://github.com/HKUDS/Vibe-Trading/pull/1988), [#1984](https://github.com/HKUDS/Vibe-Trading/pull/1984)）。以上已进入 `main`，随下一版本发布。
+
 - **2026-10-25** 🛠️ **会话、行情与计算修复（尚未发版）**：删除会话时同步清除搜索记录，首条消息带附件或 Swarm 指令时也能正确更新聊天标题（[#1970](https://github.com/HKUDS/Vibe-Trading/pull/1970)、[#1969](https://github.com/HKUDS/Vibe-Trading/pull/1969)）。修复 CCXT 历史行情提前截断、Nobitex 日线日期及 Tiingo 分类股代码映射（[#1999](https://github.com/HKUDS/Vibe-Trading/pull/1999)、[#1989](https://github.com/HKUDS/Vibe-Trading/pull/1989)、[#2010](https://github.com/HKUDS/Vibe-Trading/pull/2010)）。保留小额成交和图表价格精度，修正 GTJA 因子公式与 VWAP 单位，并在改变状态前拒绝含义不明的布尔参数（[修复](https://github.com/HKUDS/Vibe-Trading/commit/6dafa4cde)）。以上已进入 `main`，随下一版本发布。
 
 - **2026-10-24** 🛠️ **MCP、回测与搜索修复（尚未发版）**：MCP 加载运行时 `.env`，Shell 工具仍需在启动时显式启用（[#1974](https://github.com/HKUDS/Vibe-Trading/pull/1974)）。报告期货默认杠杆假设（[#1972](https://github.com/HKUDS/Vibe-Trading/pull/1972)），年化计算保留时间跨度中的小数天数（[#1971](https://github.com/HKUDS/Vibe-Trading/pull/1971)），ddgs 返回空结果时继续尝试已启用的搜狗／Bing 备用源（[修复](https://github.com/HKUDS/Vibe-Trading/commit/0d946491c)）。
@@ -59,9 +72,6 @@
 - **2026-10-23** 🛠️ **模型、组合与期货修复（尚未发版）**：直连 MiniMax 默认使用 M3.1 Flash，并在工具调用间保留推理历史（[#1936](https://github.com/HKUDS/Vibe-Trading/pull/1936)）。Longbridge 按币种展示现金及融资额度，贯通 Agent、CLI、API 和网页端（[#1940](https://github.com/HKUDS/Vibe-Trading/pull/1940)）。修复全球期货路由、合约乘数与微型合约手续费，使用默认定价参数时明确告警（[#1965](https://github.com/HKUDS/Vibe-Trading/pull/1965)）。同时修复组合错误信息脱敏、审计日志轮转、IC 统计、数值解析和微信附件文件冲突。详情见 [CHANGELOG](CHANGELOG.md)。
 
 - **2026-10-22** 🚀 **v0.1.18 发布**（[发布说明](https://github.com/HKUDS/Vibe-Trading/releases/tag/v0.1.18)，`pip install -U vibe-trading-ai`）：精简 Agent runtime——工具参数按需加载，大结果完整保留在运行目录中可读取，Swarm 保留新观察，用量统计覆盖压缩与中断调用；保留自动聊天标题。在 0.1.17 的验证回测上，模型调用从 12 次降到 7 次，输入 token 约为原来的五分之一。同时包含 0.1.17 之后的安全、数字校验、模拟账户与打包修复。**今日已在 main 修复（下个版本发布）：** 临时的模型服务错误重试后不再让实盘模型决策停摆一整天；研究目标的最终回答即使超出 token 预算也会正常交付（[CHANGELOG](CHANGELOG.md)）。
-
-<details>
-<summary>更早的新闻</summary>
 
 - **2026-10-21** 🚀 **v0.1.17 发布**（[发布说明](https://github.com/HKUDS/Vibe-Trading/releases/tag/v0.1.17)，`pip install -U vibe-trading-ai`）：自 0.1.16 以来共 638 个提交、228 个合并的 PR，另有 41 个 PR 的改动经维护者提交合入，来自 33 位贡献者。**本版主角是逐日模拟交易：** Agent 与 MCP 可调用 `paper_trade_step` 工具，保存的模拟账户可通过 `vibe-trading paper`、REST API 和网页端使用；两者都按已收盘的日线撮合订单或策略，绝不触达券商，保存的账户只向前推进（[#1939](https://github.com/HKUDS/Vibe-Trading/pull/1939)）。**其余大部分是正确性修复，很多属于同一类问题：算不出来的值现在会如实说明，而不是变成一个看似合理的数字。** 没有亏损交易时的盈利因子、无定义的相关系数和无界比率返回 `null`，IC 样本不足的因子会被跳过并说明原因；缺失价格不再被用来拼接收益；拼错或所选引擎不使用的回测配置会在运行卡片中提示。**新增：** 巴西（B3）市场，Alpha Zoo 因子从 462 个增至 478 个，Slack 与 Discord 加入网页端渠道引导配置，邮件报告支持 HTML 或可设密码的 PDF，Run Detail、聊天和 Swarm 显示 Token 用量，`claude-cli` 模型提供方，以及波斯语和土耳其语（界面共 11 种语言）。**今日修复：** 资金流备用源会标明实际来源，并区分总净流入与主力净流入；Telegram 配置步骤已补充说明。**已于当晚随 v0.1.18 发布：** `mcp>=1.30` 修复了 `--transport http` 的 CVE-2026-59951；自定义模型地址每次连接都会重新校验，并可在 fake-IP 代理下使用；数字核验能识别 `run_dir/…` 引用和 `−$` 金额；相关性分析把北交所 `920xxx` 代码归到 `.BJ`（[CHANGELOG](CHANGELOG.md)）。感谢 [@rudycelekli](https://github.com/rudycelekli), [@Shizoqua](https://github.com/Shizoqua), [@he-yufeng](https://github.com/he-yufeng), [@shadowinlife](https://github.com/shadowinlife), [@zeus229](https://github.com/zeus229), [@alexwan02](https://github.com/alexwan02), [@Jackzigen](https://github.com/Jackzigen), [@cgycorey](https://github.com/cgycorey), [@MetaAviator](https://github.com/MetaAviator), [@lorenzozanee](https://github.com/lorenzozanee), [@Mikesad](https://github.com/Mikesad), [@remote-controlled-man](https://github.com/remote-controlled-man), [@Romzhou](https://github.com/Romzhou), [@sambazhu](https://github.com/sambazhu), [@wavebyrd](https://github.com/wavebyrd), [@BHhhh-123](https://github.com/BHhhh-123), [@Bortlesboat](https://github.com/Bortlesboat), [@bygordon130-hub](https://github.com/bygordon130-hub), [@davidalmeida90](https://github.com/davidalmeida90), [@DrDLyuan](https://github.com/DrDLyuan), [@Emad211](https://github.com/Emad211), [@Frank-zhu2000](https://github.com/Frank-zhu2000), [@goatyyc](https://github.com/goatyyc), [@hunters1011-ctrl](https://github.com/hunters1011-ctrl), [@incorpore](https://github.com/incorpore), [@mdb1230](https://github.com/mdb1230), [@mminkus](https://github.com/mminkus), [@passionbull](https://github.com/passionbull), [@rwxyx518-prog](https://github.com/rwxyx518-prog), [@ThreeTima](https://github.com/ThreeTima), [@tomaszkubiak-courses](https://github.com/tomaszkubiak-courses) 和 [@xaritoku](https://github.com/xaritoku)！
 
@@ -502,6 +512,15 @@ vibe-trading connector install /tmp/my-broker
 | **Validate** | 在适用时加入指标、benchmark comparison、Monte Carlo、Bootstrap、Walk-Forward、run cards 和 warnings。 |
 | **Deliver** | 返回报告、artifacts、tool traces，以及面向 TradingView、TDX、MetaTrader 5、MCP clients 或后续 sessions 的导出。 |
 
+### 版本化研究资料
+
+已完成的分析可以保存为不可变修订，记录研究主题、范围、数据截至日期、证据引用、验证状态，以及可选的 hypothesis、goal、session 或 run 关联。重复提交相同内容和来源信息会返回已有修订；证据变化或新的数据截至日期会追加关联修订，而不是覆盖旧结论。搜索只返回每个系列的最新版，完整历史则可在 Web 研究资料库、API、agent tools 和 CLI 中读取。历史内容不会被展示成刚刚重新验证过。
+
+```bash
+vibe-trading research-artifact save --subject "NVDA 基本面分析" --content "有证据支持的结论。" --data-as-of 2026-10-27 --evidence '[{"source_uri":"https://example.com/filing"}]'
+vibe-trading research-artifact search --query "NVDA"
+```
+
 ---
 
 ## 📡 数据源与智能 Fallback
@@ -730,7 +749,7 @@ LONGBRIDGE_ACCESS_TOKEN=...
 </details>
 
 <details>
-<summary><b>Backtest Engines</b> <sub>11 个引擎 + options portfolio，跨市场 composite</sub></summary>
+<summary><b>Backtest Engines</b> <sub>12 个引擎 + options portfolio，跨市场 composite</sub></summary>
 
 | 引擎 | 市场 | 说明 |
 |------|------|------|
@@ -740,6 +759,7 @@ LONGBRIDGE_ACCESS_TOKEN=...
 | **KoreaEquity** | 韩国（KRX：KOSPI/KOSDAQ） | 只做多，统一最小价位网格上于成交时刻判定 ±30% 涨跌停，2026 年 0.20% 证券交易税 |
 | **VietnamEquity** | 越南（HOSE） | 只做多，T+2 交收锁定，10/50/100 越南盾最小价位网格上 ±7% 涨跌停，100 股整手，0.1% 卖出方税 |
 | **BrazilEquity** | Brazil (B3) | BRL, B3 trading + settlement fees, configurable broker fee, 1- or 100-share lots, R$0.01 tick, shorting allowed |
+| **ArgentinaEquity** | Argentina (BYMA) | ARS 现金、只做多；T+2 → T+1（2024-05-27），按观测交易日近似结算；同日卖出资金净额抵扣；声明 CEDEAR 比例与入账日；显式 tick 表/板块（`ar_tick_table`）或逐标的 tick |
 | **Crypto** | 加密现货 / USD-M 永续 | 资金费结算、成交价/标记价分离 |
 | **ChinaFutures** · **GlobalFutures** | 期货 | 保证金、合约乘数 |
 | **Forex** | 外汇 / 贵金属 | 经 `mt5` loader |
@@ -894,6 +914,7 @@ vibe-trading-mcp               # start MCP server (stdio)
 - 路径 B 需要 **Python 3.11+**
 - 路径 A 需要 **Docker**
 - OpenAI Codex 也可通过 ChatGPT OAuth 使用：设置 `LANGCHAIN_PROVIDER=openai-codex`，然后运行 `vibe-trading provider login openai-codex`。它不使用 `OPENAI_API_KEY`。
+  Web 设置中的 Codex 模型选择器会从已登录的 ChatGPT 会话发现可用模型与推理强度。发现失败时仍可使用默认模型或手动输入。
 
 > **支持的 LLM providers：** OpenRouter、OpenAI、Anthropic（原生 Messages API）、DeepSeek、Gemini、Groq、DashScope/Qwen、Zhipu、Moonshot/Kimi、MiniMax、SiliconFlow（CN + Global）、Xiaomi MIMO、Novita AI、iFlytek 星火、Z.ai、NVIDIA NIM、ModelScope、GitHub Copilot、Ollama（本地）。未设置 `*_BASE_URL` 时，每个 provider 会回退到其规范端点，因此只需一个 key 即可。配置见 `.env.example`。
 
@@ -1335,7 +1356,7 @@ POST `{}` 即按模板自身的建议节奏和默认变量排程。渲染后的�
 
 ## 🔌 MCP Plugin
 
-Vibe-Trading 为任何 MCP-compatible client 暴露 82 个 MCP tools。它作为 stdio subprocess 运行，无需 server setup。核心 research tools 对港股/美股/加密零 API key 可用；trading connector tools 使用当前选择的 connector profile；只有 `run_swarm` 需要 LLM key。
+Vibe-Trading 为任何 MCP-compatible client 暴露 83 个 MCP tools。它作为 stdio subprocess 运行，无需 server setup。核心 research tools 对港股/美股/加密零 API key 可用；trading connector tools 使用当前选择的 connector profile；只有 `run_swarm` 需要 LLM key。
 
 **环境变量：** server 由 client 自己 spawn，因此在 shell 里 `export` 永远传不进去 —— 请写在 client 的 `env` 块里。生成的回测代码被限制在 allowed run roots 内，所以要把结果写进你自己的工作目录，需要 `VIBE_TRADING_ALLOWED_RUN_ROOTS`：
 
@@ -1391,7 +1412,7 @@ vibe-trading-mcp --transport sse   # legacy SSE (deprecated)
 
 </details>
 
-**暴露的 MCP tools（82）：** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
+**暴露的 MCP tools（83）：** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_backtest_runs`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
 
 ### SWARM 的外部 MCP tools
 
@@ -1747,7 +1768,7 @@ Vibe-Trading/
 ├── agent/                          # 后端（Python）
 │   ├── cli/                        # CLI 包 —— 交互式 TUI + 子命令
 │   ├── api_server.py               # FastAPI server —— runs、sessions、upload、swarm、SSE
-│   ├── mcp_server.py               # MCP server —— 82 个工具，面向 OpenClaw / Claude Desktop
+│   ├── mcp_server.py               # MCP server —— 83 个工具，面向 OpenClaw / Claude Desktop
 │   │
 │   ├── src/
 │   │   ├── agent/                  # ReAct agent 内核
@@ -1762,7 +1783,7 @@ Vibe-Trading/
 │   │   ├── memory/                 # 跨 session 持久记忆
 │   │   │   └── persistent.py       #   基于文件的记忆（~/.vibe-trading/memory/）
 │   │   │
-│   │   ├── tools/                  # 116 个自动发现的 agent 工具
+│   │   ├── tools/                  # 120 个自动发现的 agent 工具
 │   │   │   ├── backtest_tool.py    #   运行回测
 │   │   │   ├── remember_tool.py    #   跨 session 记忆（save/recall/forget）
 │   │   │   ├── skill_writer_tool.py #  skill CRUD（save/patch/delete/file）
@@ -1787,7 +1808,7 @@ Vibe-Trading/
 │   │   └── providers/              # LLM provider 抽象层
 │   │
 │   └── backtest/                   # 回测引擎
-│       ├── engines/                #   10 个引擎 + 跨市场 composite 引擎 + options_portfolio
+│       ├── engines/                #   11 个引擎 + 跨市场 composite 引擎 + options_portfolio
 │       ├── loaders/                #   29 个数据源：tushare、okx、nobitex、wallex、binance、yfinance、akshare、baostock、tencent、mootdx、ccxt、futu、pykrx、local、eastmoney、sina、stooq、yahoo、finnhub、alphavantage、tiingo、fmp、longbridge、mt5、qveris、india_broker、tickerall、gildata, b3_cotahist
 │       │   ├── base.py             #   DataLoader Protocol
 │       │   └── registry.py         #   Registry + 自动 fallback 链路
