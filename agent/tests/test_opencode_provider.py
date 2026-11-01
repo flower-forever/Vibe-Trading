@@ -66,6 +66,11 @@ def test_capabilities_resolve_opencode_provider() -> None:
     assert caps.default_headers["User-Agent"].startswith("Vibe-Trading/")
 
 
+@pytest.mark.parametrize("model, enabled", [("deepseek-v4.1-flash", True), ("deepseek-v4-pro", True), ("glm-5.3", False)])
+def test_reasoning_effort_is_scoped_to_deepseek_models(model: str, enabled: bool) -> None:
+    assert get_provider_capabilities("opencode", model).top_level_reasoning_effort is enabled
+
+
 @pytest.mark.parametrize("name", ["opencode-go", "opencode-zen"])
 def test_legacy_opencode_spellings_keep_openai_env(name: str) -> None:
     """Upstream contract: the older names ride the OPENAI_* variables."""
