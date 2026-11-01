@@ -6,7 +6,7 @@ Zero API key required for HK/US/crypto research markets (yfinance, OKX,
 AKShare are free). Trading connector tools are profile-scoped and require the
 selected connector's own local app or OAuth setup.
 
-Surfaces 83 tools: skills, research goals, strategy discovery,
+Surfaces 84 tools: skills, research goals, strategy discovery,
 backtest/factor/options/pattern
 analysis, deterministic paper-trading matching (paper_trade_step), market data, fundamentals & capital-flow & news & discovery
 (get_fund_flow / get_dragon_tiger / get_northbound_flow / get_southbound_flow /
@@ -730,6 +730,36 @@ def add_goal_evidence(
 
 
 @mcp.tool
+def update_research_goal(
+    objective: str | None = None,
+    ui_summary: str | None = None,
+    goal_id: str = "",
+    expected_goal_id: str = "",
+    session_id: str = "",
+    ctx: Context | None = None,
+) -> str:
+    """Edit the current research goal without discarding criteria or evidence.
+
+    Args:
+        objective: Replacement objective; omit to keep the current text.
+        ui_summary: Replacement display summary; omit to keep it.
+        goal_id: Optional current goal id.
+        expected_goal_id: Optional stale-write guard, defaulting to goal_id.
+        session_id: Optional conversation id; defaults to this MCP connection.
+        ctx: MCP request context supplied by the server.
+
+    Returns:
+        Updated snapshot or a structured validation/stale-goal error.
+    """
+    from src.tools.goal_tool import UpdateResearchGoalTool
+
+    return UpdateResearchGoalTool(
+        default_session_id=_resolve_session_id(session_id, ctx), store=_get_goal_store()
+    ).execute(objective=objective, ui_summary=ui_summary, goal_id=goal_id,
+              expected_goal_id=expected_goal_id)
+
+
+@mcp.tool
 def update_research_goal_status(
     status: str,
     goal_id: str = "",
@@ -825,7 +855,7 @@ def backtest(run_dir: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Paper-trading step tool (pt-v1.1, hand-written wrapper)
+# Paper-trading step tool (pt-v1.1/pt-v1.2, VD-12 hand-written wrapper)
 # ---------------------------------------------------------------------------
 
 
@@ -839,14 +869,18 @@ def paper_trade_step(
     orders: _lenient_dict_list_opt = None,
     strategy_path: str | None = None,
     fee_model: _lenient_dict_any_opt = None,
+    interval: str | None = None,
+    session: str | None = None,
+    path_model: str | None = None,
+    fill_model: str | None = None,
 ) -> str:
     """Run one step of the deterministic paper-trading matching engine; never places real orders.
 
-    Matches the injected ``orders`` (or a ``strategy_path``'s per-day orders)
-    against daily bars under the market's frozen rules (T+1, price limits,
-    board lots, fees) and returns ONE in-band JSON document on
-    ``result.content[0].text``: the pt-v1.1 success result, or an error
-    envelope (``PAPER_DATA_NOT_READY`` retryable / ``INVALID_REQUEST``
+    Matches the injected ``orders`` (or, in Step 7, a ``strategy_path``'s
+    per-day orders) against bars under the market's frozen rules (T+1, price
+    limits, board lots, fees) and returns ONE in-band JSON document on
+    ``result.content[0].text``: the pt-v1.1/pt-v1.2 success result, or an AM-5
+    error envelope (``PAPER_DATA_NOT_READY`` retryable / ``INVALID_REQUEST``
     non-retryable) on the SAME channel — never a transport error. Research-only:
     it reads market data and the injected ledger, matches on paper, and writes
     nothing; no broker or trading-connector order path exists here.
@@ -867,7 +901,15 @@ def paper_trade_step(
             per-day orders are matched. Exactly one of ``orders`` /
             ``strategy_path``.
         fee_model: Optional per-key fee overrides merged over the market
-            defaults.
+            defaults (AM-4-3: RM always injects it explicitly).
+        interval: Optional pt-v1.2 bar interval — ``1d`` (default) or ``5m``;
+            ``5m`` is cn_a-only.
+        session: Optional pt-v1.2 session selector — ``auto`` (default) or
+            ``cn_a``; ``cn_a`` requires market ``cn_a``.
+        path_model: Optional pt-v1.2 reference-price model — ``bar_median``
+            (default) or ``bar_close``; ignored for ``1d``.
+        fill_model: Optional pt-v1.2 fill model — ``all_or_none`` (default and
+            only P0 value).
     """
     from src.tools.paper_trade.tool import run_paper_trade_step
 
@@ -884,6 +926,14 @@ def paper_trade_step(
         payload["strategy_path"] = strategy_path
     if fee_model is not None:
         payload["fee_model"] = fee_model
+    if interval is not None:
+        payload["interval"] = interval
+    if session is not None:
+        payload["session"] = session
+    if path_model is not None:
+        payload["path_model"] = path_model
+    if fill_model is not None:
+        payload["fill_model"] = fill_model
     return run_paper_trade_step(payload)
 
 
@@ -1248,7 +1298,7 @@ def read_document(file_path: str) -> str:
 
 @mcp.tool
 def web_search(query: str, max_results: int = 5) -> str:
-    """Search the web via DuckDuckGo and return top results.
+    """Search the web with configured providers and free search engines.
 
     Returns titles, URLs, and snippets. Use read_url() to fetch full content
     from any result URL. Free, no API key required.

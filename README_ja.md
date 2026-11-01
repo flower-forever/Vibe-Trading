@@ -52,6 +52,8 @@
 
 > ⚠️ **セキュリティ警告：** Xアカウント `VibeTrading_HKU`、Virtualsプロジェクト `101845`、およびトークンコントラクト `0x640BDBF77b6447E8b7DB7894cED84BD1c40571f4` は、いずれもVibe-Trading公式のものではありません。Vibe-Tradingはこれまで、いかなるトークンやミームコインも発行・公認していません。購入、ウォレットの接続、署名は行わないでください。[詳細](SECURITY.md#official-channels--impersonation)
 
+- **2026-10-30** 🛠️ **チャネルの信頼性と中国株の数量ルール（未リリース）**：Telegram、Feishu、Matrix、Weixin の音声メッセージを添付としてエージェントへ渡します。科創板と北京市場のバックテストに市場別の最低株数と1株単位の増分を適用し、パス境界の回帰テストを追加しました。 ([#2106](https://github.com/HKUDS/Vibe-Trading/pull/2106), [#2105](https://github.com/HKUDS/Vibe-Trading/pull/2105), [#2094](https://github.com/HKUDS/Vibe-Trading/pull/2094)). 追加対応：ストリームのキャンセル、再試行とキャッシュ使用量、バックグラウンドタスクの復旧、Discord の重複分割を修正。証拠を保持して調査目標を編集できます。中国株の5分足ペーパーステップはバーごとに約定し、保存口座は引き続き日足のみです。Parallel 検索は既定で無効です。 ([#2099](https://github.com/HKUDS/Vibe-Trading/pull/2099), [#2109](https://github.com/HKUDS/Vibe-Trading/pull/2109), [#2111](https://github.com/HKUDS/Vibe-Trading/pull/2111), [#2113](https://github.com/HKUDS/Vibe-Trading/pull/2113)).
+
 - **2026-10-29** 🛠️ **リサーチの再利用と実行修正（未リリース）**：版管理されたリサーチ資料を保存し、manifest で検証した過去のバックテスト成果物を再利用できます（[#2079](https://github.com/HKUDS/Vibe-Trading/pull/2079)、[#2074](https://github.com/HKUDS/Vibe-Trading/pull/2074)）。
   文書内の金額・単位、暗号資産現物のバックテスト費用を修正し、Binance の未約定注文取得と AKShare 互換性を復旧しました（[#2050](https://github.com/HKUDS/Vibe-Trading/issues/2050)、[#2088](https://github.com/HKUDS/Vibe-Trading/issues/2088)、[#2090](https://github.com/HKUDS/Vibe-Trading/issues/2090)、[#2083](https://github.com/HKUDS/Vibe-Trading/pull/2083)）。
   Codex モデル検出、BYMA ルール、バックグラウンド処理の所有元分離、共通ツールポリシーも追加。模擬戦略は専用ワーカーパイプを使います。Windows 実機での確認は未完了です（[#2089](https://github.com/HKUDS/Vibe-Trading/issues/2089)、[CHANGELOG](CHANGELOG.md)）。
@@ -1334,7 +1336,7 @@ curl -X POST http://localhost:8899/scheduled-runs/playbooks/premarket-brief \
 
 ## 🔌 MCP Plugin
 
-Vibe-Trading は MCP-compatible client 向けに 83 MCP tools を公開します。stdio subprocess として動作し、server setup は不要です。Core research tools は HK/US/crypto で API key なしに動作し、trading connector tools は選択中の connector profile を使います。LLM key が必要なのは `run_swarm` のみです。
+Vibe-Trading は MCP-compatible client 向けに 84 MCP tools を公開します。stdio subprocess として動作し、server setup は不要です。Core research tools は HK/US/crypto で API key なしに動作し、trading connector tools は選択中の connector profile を使います。LLM key が必要なのは `run_swarm` のみです。
 
 **環境変数:** server は client 自身が spawn するため、shell の `export` は届きません —— client の `env` block に設定してください。生成された backtest code は allowed run roots 内に制限されるので、結果を自分の作業 directory に書き出すには `VIBE_TRADING_ALLOWED_RUN_ROOTS` が必要です:
 
@@ -1390,7 +1392,7 @@ vibe-trading-mcp --transport sse   # legacy SSE (deprecated)
 
 </details>
 
-**公開される MCP tools（83）:** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_backtest_runs`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
+**公開される MCP tools（84）:** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `update_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_backtest_runs`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
 
 ### SWARM の外部 MCP tools
 
@@ -1756,7 +1758,7 @@ Vibe-Trading/
 ├── agent/                          # バックエンド (Python)
 │   ├── cli/                        # CLI パッケージ — インタラクティブ TUI + サブコマンド
 │   ├── api_server.py               # FastAPI サーバー — runs、sessions、upload、swarm、SSE
-│   ├── mcp_server.py               # MCP サーバー — OpenClaw / Claude Desktop 向け 83 tools
+│   ├── mcp_server.py               # MCP サーバー — OpenClaw / Claude Desktop 向け 84 tools
 │   │
 │   ├── src/
 │   │   ├── agent/                  # ReAct エージェントコア

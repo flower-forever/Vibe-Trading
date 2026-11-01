@@ -52,6 +52,8 @@
 
 > ⚠️ **安全警告：** X 账号 `VibeTrading_HKU`、Virtuals 项目 `101845` 及代币合约 `0x640BDBF77b6447E8b7DB7894cED84BD1c40571f4` 均非 Vibe-Trading 官方。我们从未发行或背书任何代币或 meme 币。请勿购买、连接钱包或签名。[详细说明](SECURITY.md#official-channels--impersonation)。
 
+- **2026-10-30** 🛠️ **渠道可靠性与 A 股数量规则（尚未发版）**：Telegram、飞书、Matrix 和微信语音消息以附件形式送达 Agent；科创板与北交所回测遵循各自最低申报数量及一股递增规则，并补充路径边界回归测试。 ([#2106](https://github.com/HKUDS/Vibe-Trading/pull/2106), [#2105](https://github.com/HKUDS/Vibe-Trading/pull/2105), [#2094](https://github.com/HKUDS/Vibe-Trading/pull/2094)). 后续整合：修复流式取消、重试及缓存用量统计、后台任务恢复和 Discord 重复分段；研究目标可保留证据直接编辑。A 股五分钟纸面步骤逐 bar 撮合，持久账户仍仅支持日线；Parallel 搜索默认关闭。 ([#2099](https://github.com/HKUDS/Vibe-Trading/pull/2099), [#2109](https://github.com/HKUDS/Vibe-Trading/pull/2109), [#2111](https://github.com/HKUDS/Vibe-Trading/pull/2111), [#2113](https://github.com/HKUDS/Vibe-Trading/pull/2113)).
+
 - **2026-10-29** 🛠️ **研究复用与执行修复（尚未发版）**：保存带版本的研究资料，复用经 manifest 校验的历史回测产物（[#2079](https://github.com/HKUDS/Vibe-Trading/pull/2079)、[#2074](https://github.com/HKUDS/Vibe-Trading/pull/2074)）。
   修复文档金额与单位、现货加密货币回测成本，恢复 Binance 挂单查询及 AKShare 兼容性（[#2050](https://github.com/HKUDS/Vibe-Trading/issues/2050)、[#2088](https://github.com/HKUDS/Vibe-Trading/issues/2088)、[#2090](https://github.com/HKUDS/Vibe-Trading/issues/2090)、[#2083](https://github.com/HKUDS/Vibe-Trading/pull/2083)）。
   新增 Codex 模型发现、BYMA 规则、后台任务归属隔离及共享工具策略。模拟策略改用独立工作进程管道；Windows 原生复测仍待完成（[#2089](https://github.com/HKUDS/Vibe-Trading/issues/2089)、[CHANGELOG](CHANGELOG.md)）。
@@ -1356,7 +1358,7 @@ POST `{}` 即按模板自身的建议节奏和默认变量排程。渲染后的�
 
 ## 🔌 MCP Plugin
 
-Vibe-Trading 为任何 MCP-compatible client 暴露 83 个 MCP tools。它作为 stdio subprocess 运行，无需 server setup。核心 research tools 对港股/美股/加密零 API key 可用；trading connector tools 使用当前选择的 connector profile；只有 `run_swarm` 需要 LLM key。
+Vibe-Trading 为任何 MCP-compatible client 暴露 84 个 MCP tools。它作为 stdio subprocess 运行，无需 server setup。核心 research tools 对港股/美股/加密零 API key 可用；trading connector tools 使用当前选择的 connector profile；只有 `run_swarm` 需要 LLM key。
 
 **环境变量：** server 由 client 自己 spawn，因此在 shell 里 `export` 永远传不进去 —— 请写在 client 的 `env` 块里。生成的回测代码被限制在 allowed run roots 内，所以要把结果写进你自己的工作目录，需要 `VIBE_TRADING_ALLOWED_RUN_ROOTS`：
 
@@ -1412,7 +1414,7 @@ vibe-trading-mcp --transport sse   # legacy SSE (deprecated)
 
 </details>
 
-**暴露的 MCP tools（83）：** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_backtest_runs`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
+**暴露的 MCP tools（84）：** `list_skills`, `load_skill`, `start_research_goal`, `get_research_goal`, `update_research_goal`, `add_goal_evidence`, `update_research_goal_status`, `backtest`, `factor_analysis`, `alpha_zoo`, `alpha_bench`, `analyze_options`, `analyze_options_payoff`, `pattern_recognition`, `read_url`, `read_document`, `web_search`, `write_file`, `read_file`, `read_run_artifact`, `list_backtest_runs`, `list_strategies`, `query_strategies`, `get_strategy_evidence`, `refresh_strategy_evidence`, `adapt_strategy`, `list_swarm_presets`, `run_swarm`, `get_market_data`, `get_fund_flow`, `get_dragon_tiger`, `get_northbound_flow`, `get_southbound_flow`, `get_margin_trading`, `get_block_trades`, `get_shareholder_count`, `get_lockup_expiry`, `get_sector_info`, `get_research_reports`, `get_stock_news`, `get_sec_filings`, `get_financial_statements`, `get_options_chain`, `get_stock_profile`, `screen_market`, `search_symbol`, `get_macro_series`, `iwencai_search`, `qveris_search`, `qveris_inspect`, `qveris_execute`, `get_institutional_holdings`, `etf_holdings`, `prediction_market`, `research_papers`, `get_swarm_status`, `get_run_result`, `list_runs`, `reap_stale_runs`, `retry_run`, `analyze_trade_journal`, `extract_shadow_strategy`, `run_shadow_backtest`, `render_shadow_report`, `scan_shadow_signals`, `trading_connections`, `trading_select_connection`, `trading_check`, `trading_account`, `trading_positions`, `trading_orders`, `trading_quote`, `trading_history`, `quantlib_call`, `cashflow_performance`, `orderbook_depth`, `sentiment`, `technical_indicators`, `get_fundamentals`, `get_fund_nav`, `get_cn_macro_series`, `get_cn_announcements`, `search_broker_reports`, `paper_trade_step`.
 
 ### SWARM 的外部 MCP tools
 
@@ -1768,7 +1770,7 @@ Vibe-Trading/
 ├── agent/                          # 后端（Python）
 │   ├── cli/                        # CLI 包 —— 交互式 TUI + 子命令
 │   ├── api_server.py               # FastAPI server —— runs、sessions、upload、swarm、SSE
-│   ├── mcp_server.py               # MCP server —— 83 个工具，面向 OpenClaw / Claude Desktop
+│   ├── mcp_server.py               # MCP server —— 84 个工具，面向 OpenClaw / Claude Desktop
 │   │
 │   ├── src/
 │   │   ├── agent/                  # ReAct agent 内核

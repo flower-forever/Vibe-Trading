@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Opt-in A-share five-minute paper steps match orders bar by bar, defer
+  price-limit-blocked orders and cancel unfilled day orders at session end.
+  Zero-volume bars cannot fill. Saved accounts remain daily-only; partial
+  fills and volume participation remain follow-up work (#2110, #2111).
+- Research goals can be edited without losing evidence through the agent and
+  session-isolated MCP `update_research_goal` tool (#2093).
+
+- Optional Parallel hosted search in `web_search`, enabled with
+  `VIBE_TRADING_SEARCH_PARALLEL=1`. Default search behavior and configured IQS
+  priority are preserved; no new dependency or API key is required.
 - **Versioned research artifacts** can be saved, searched and explicitly revised
   through agent tools, CLI, API and Web (all 11 locales). Revisions preserve
   content, evidence references and data-as-of identity; unchanged saves are
@@ -36,6 +46,27 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   turn is not detected.
 
 ### Fixed
+
+- Supervise silent provider streams without dropping chunks or losing session
+  context; preserve partial-output boundaries and cancel promptly (#2099).
+- Preserve cache usage details and bill every Claude CLI retry, while context
+  sizing uses the latest prompt instead of summed retry usage (#2109).
+- Cancel background processes after failed/canceled runs and during bounded
+  shutdown. Persist scoped task records and expose interrupted or unknown
+  outcomes after restart without replaying commands (#2098, #2100).
+- Split long Discord responses once, avoiding duplicate overflow (#2114).
+
+- **Percentage-point figures ground against the bare declaration** the
+  convention writes (#2107). A CN filing states its moves in `个百分点`; the
+  scan marks the prose figure a percent while the model's own block declares
+  `1.13` bare, and the gate redacted every such figure even when the document
+  held the value. The borrow is one-way and exact: `1.13` grounds
+  `1.13个百分点`, while `37%` in the prose still needs a percent declaration.
+  `pct` / `ppt` / `ppts` / `百分点` now read as point marks, and a declared
+  percent range `20%-30%` becomes two endpoint declarations instead of a
+  malformed line plus a bogus `-30%` figure.
+- Forward Telegram, Feishu, Matrix and Weixin voice notes as attachments instead of calling an unavailable transcription method (#2106).
+- Apply STAR and Beijing board-specific minimum order sizes and one-share increments in A-share backtests (#2105); add channel path-containment regressions (#2094).
 
 - **Document figure grounding** accepts document-scoped currency restatements
   and magnitude-aware arithmetic, including percentage-point declarations.
